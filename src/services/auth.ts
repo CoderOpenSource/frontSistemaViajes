@@ -1,24 +1,61 @@
-import { api } from "./api.ts";
+// services/auth.ts
+import { api } from "./api";
+import {
+    saveSession,
+    clearSession,
+    getStoredUser,
+    setStoredUser,
+    isAuthenticated as storageIsAuthenticated,
+} from "./storage";
+
+// ===== Tipos =====
+export type User = {
+    id: string;
+    username: string;
+    email: string;
+    role?: string;
+    must_change_password?: boolean;
+};
 
 export type LoginInput = { email: string; password: string };
-export type User = { id: string; name: string; email: string; role?: string };
+export type LoginResponse = { access: string; refresh: string; user: User };
 
-// Ajusta los paths a tu backend si son distintos
-export async function login(input: LoginInput) {
-    // Espera algo como { user, token? }
-    return api.post<{ user: User; token?: string }>("/auth/login", input);
+// ===== Auth API =====
+
+// POST /auth/login → { access, refresh, user }
+export async function login(input: LoginInput): Promise<LoginResponse> {
+    const data = await api.post<LoginResponse>("/auth/login", input);
+    // Guarda tokens + usuario en storage
+    console.log(data.user);
+    saveSession(data.access, data.refresh, data.user);
+    return data;
 }
 
-export async function logout() {
-    await api.post("/auth/logout");
+// (Opcional) POST /auth/logout en servidor; aquí limpiamos el front siempre
+export async function logout(): Promise<void> {
+    // Si tienes endpoint en backend, puedes descomentar:
+    // try { await api.post("/auth/logout"); } catch {}
+    clearSession();
 }
 
-export async function me() {
-    // Devuelve null si no hay sesión
+// GET /auth/me → { user }
+export async function me(): Promise<User | null> {
     try {
         const { user } = await api.get<{ user: User }>("/auth/me");
+        setStoredUser(user); // sincroniza cache local
         return user;
     } catch {
-        return null;
+        // Si el token expiró o hay error de red, devuelve lo último que tengamos cacheado
+        return getStoredUser();
     }
 }
+
+// ===== Conveniencias (re-export) =====
+export function isAuthenticated(): boolean {
+    return storageIsAuthenticated();
+}
+
+export function getCurrentUser(): User | null {
+    return getStoredUser();
+}
+
