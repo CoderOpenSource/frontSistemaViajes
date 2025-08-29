@@ -1,15 +1,15 @@
-// src/types/views.ts
 export type View =
     | "resumen"
     | "ventas"
     | "embarque"
     | "tardios"
     | "taquilla"
-    | "rutas"
+    | "rutas"      // ✅ mantenemos esta en español
     | "usuarios"
     | "bitacora"
     | "oficinas"
     | "buses"
     | "crews"
-    | "salidas"
-    | "licenses";
+    | "salidas"    // ✅ Departures
+    | "licenses"
+    | "pasajeros";

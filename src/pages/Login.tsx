@@ -82,6 +82,7 @@ export default function Login() {
                                     <input
                                         id="email"
                                         type="email"
+                                        placeholder="ejemplo@correo.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
@@ -106,6 +107,7 @@ export default function Login() {
                                     <input
                                         id="password"
                                         type="password"
+                                        placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
@@ -122,18 +124,29 @@ export default function Login() {
                                     )}
                                 </div>
 
+
+                                {/* Botón */}
                                 {/* Botón */}
                                 <button
                                     type="submit"
                                     disabled={submitting}
                                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-white transition
-                             hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+       hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {submitting && (
                                         <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                     )}
                                     {submitting ? "Ingresando..." : "Entrar"}
                                 </button>
+
+                                {/* Botón volver al home */}
+                                <a
+                                    href="/"
+                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-700 transition hover:bg-gray-50"
+                                >
+                                    ⬅ Volver al inicio
+                                </a>
+
                             </form>
                         </div>
                     </div>

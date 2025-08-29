@@ -6,7 +6,11 @@ import {
     createBus,
     updateBus,
     deleteBus,
+    getBusSeatBlocks,
+    KIND_OPTIONS,
     type Bus,
+    type SeatBlock,
+    type UpsertBusBody,
 } from "../../services/buses";
 
 const Spinner = () => (
@@ -40,6 +44,27 @@ type FormBus = {
     capacity: number | string;
     active: boolean;
     notes?: string;
+
+    // Archivos locales (para subir)
+    frontFile?: File | null;
+    backFile?: File | null;
+    leftFile?: File | null;
+    rightFile?: File | null;
+
+    // URLs actuales (leídas del backend)
+    frontUrl?: string | null;
+    backUrl?: string | null;
+    leftUrl?: string | null;
+    rightUrl?: string | null;
+
+    // flags para borrar imágenes en el update
+    clearFront?: boolean;
+    clearBack?: boolean;
+    clearLeft?: boolean;
+    clearRight?: boolean;
+
+    // Bloques de asientos (inputs flex con string/number)
+    seat_blocks: (SeatBlock & { count: number | string; start_number?: number | string })[];
 };
 
 export default function BusesView() {
@@ -95,24 +120,47 @@ export default function BusesView() {
         }
     }, [qDebounced, page, pageSize]);
 
-    useEffect(() => { setPage(1); }, [qDebounced]);
-    useEffect(() => { fetchList(); }, [fetchList]);
+    useEffect(() => {
+        setPage(1);
+    }, [qDebounced]);
+    useEffect(() => {
+        fetchList();
+    }, [fetchList]);
 
     // Form helpers
     const openCreate = () => {
+        const defaultCap = 44;
         setEditing({
             model: "",
             year: new Date().getFullYear(),
             plate: "",
             chassis_number: "",
-            capacity: 44,
+            capacity: defaultCap,
             active: true,
             notes: "",
+
+            frontFile: null,
+            backFile: null,
+            leftFile: null,
+            rightFile: null,
+
+            frontUrl: null,
+            backUrl: null,
+            leftUrl: null,
+            rightUrl: null,
+
+            clearFront: false,
+            clearBack: false,
+            clearLeft: false,
+            clearRight: false,
+
+            seat_blocks: [{ deck: 1, kind: "NORMAL", count: defaultCap, start_number: 1 }],
         });
         setShowForm(true);
     };
 
-    const openEdit = (b: Bus) => {
+    const openEdit = async (b: Bus) => {
+        // Abre modal con datos base + URLs de fotos que trae el backend
         setEditing({
             id: b.id,
             code: b.code,
@@ -123,14 +171,102 @@ export default function BusesView() {
             capacity: b.capacity,
             active: b.active,
             notes: b.notes ?? "",
+
+            frontUrl: b.photo_front ?? null,
+            backUrl: b.photo_back ?? null,
+            leftUrl: b.photo_left ?? null,
+            rightUrl: b.photo_right ?? null,
+
+            frontFile: null,
+            backFile: null,
+            leftFile: null,
+            rightFile: null,
+
+            clearFront: false,
+            clearBack: false,
+            clearLeft: false,
+            clearRight: false,
+
+            seat_blocks: [],
         });
         setShowForm(true);
+
+        try {
+            const blocks = await getBusSeatBlocks(b.id);
+            setEditing((s) =>
+                s
+                    ? {
+                        ...s,
+                        seat_blocks: (blocks ?? []).map((blk) => ({
+                            ...blk,
+                            count: Number(blk.count),
+                            start_number: blk.start_number ?? 1,
+                        })),
+                    }
+                    : s
+            );
+        } catch (e: any) {
+            toast.error(e?.message || "No se pudieron cargar los bloques de asientos.");
+        }
     };
+
+    const blocksSum = useMemo(() => {
+        if (!editing) return 0;
+        return (editing.seat_blocks ?? []).reduce((acc, b) => acc + (Number(b.count) || 0), 0);
+    }, [editing]);
+
+    const capacityNum = useMemo(() => Number(editing?.capacity ?? 0), [editing]);
+    const capacityOk = blocksSum === capacityNum;
+
+    const addBlock = () => {
+        setEditing((s) => {
+            if (!s) return s;
+            const last = s.seat_blocks?.[s.seat_blocks.length - 1];
+            const nextStart = (last ? Number(last.start_number || 1) + Number(last.count || 0) : 1) || 1;
+            return {
+                ...s,
+                seat_blocks: [...(s.seat_blocks ?? []), { deck: 1, kind: "NORMAL", count: 1, start_number: nextStart }],
+            };
+        });
+    };
+
+    const removeBlock = (idx: number) => {
+        setEditing((s) => {
+            if (!s) return s;
+            const copy = [...(s.seat_blocks ?? [])];
+            copy.splice(idx, 1);
+            return { ...s, seat_blocks: copy };
+        });
+    };
+
+    const updateBlock = (idx: number, patch: Partial<SeatBlock & { count: number | string; start_number?: number | string }>) => {
+        setEditing((s) => {
+            if (!s) return s;
+            const copy = [...(s.seat_blocks ?? [])];
+            copy[idx] = { ...copy[idx], ...patch };
+            return { ...s, seat_blocks: copy };
+        });
+    };
+
+    // Previews (blob primero; si no, URL del backend)
+    const frontPreview = editing?.frontFile ? URL.createObjectURL(editing.frontFile) : editing?.frontUrl || null;
+    const backPreview  = editing?.backFile  ? URL.createObjectURL(editing.backFile)  : editing?.backUrl  || null;
+    const leftPreview  = editing?.leftFile  ? URL.createObjectURL(editing.leftFile)  : editing?.leftUrl  || null;
+    const rightPreview = editing?.rightFile ? URL.createObjectURL(editing.rightFile) : editing?.rightUrl || null;
+
+    useEffect(() => {
+        return () => {
+            if (frontPreview?.startsWith("blob:")) URL.revokeObjectURL(frontPreview);
+            if (backPreview?.startsWith("blob:"))  URL.revokeObjectURL(backPreview);
+            if (leftPreview?.startsWith("blob:"))  URL.revokeObjectURL(leftPreview);
+            if (rightPreview?.startsWith("blob:")) URL.revokeObjectURL(rightPreview);
+        };
+    }, [frontPreview, backPreview, leftPreview, rightPreview]);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editing) return;
-        // Validaciones rápidas UI
+
         const yearNum = Number(editing.year);
         const capNum = Number(editing.capacity);
         if (isNaN(yearNum) || yearNum < 1980 || yearNum > 2100) {
@@ -142,18 +278,47 @@ export default function BusesView() {
             return;
         }
 
+        const hasBlocks = (editing.seat_blocks ?? []).length > 0;
+        if (hasBlocks && !capacityOk) {
+            toast.error(`La suma de bloques (${blocksSum}) debe igualar la capacidad (${capNum}).`);
+            return;
+        }
+
         setSaving(true);
         try {
-            const payload = {
-
+            const payload: UpsertBusBody = {
                 model: editing.model.trim(),
                 year: yearNum,
                 plate: editing.plate.trim(),
                 chassis_number: editing.chassis_number.trim(),
                 capacity: capNum,
                 active: editing.active,
-                notes: (editing.notes ?? "").trim(),
+                notes: (editing.notes ?? "").trim() || undefined,
             };
+
+            // Fotos → si hay archivo subimos; si se marcó quitar, enviamos null; si no, omitimos
+            if (editing.frontFile) payload.photo_front = editing.frontFile;
+            else if (editing.clearFront) payload.photo_front = null;
+
+            if (editing.backFile) payload.photo_back = editing.backFile;
+            else if (editing.clearBack) payload.photo_back = null;
+
+            if (editing.leftFile) payload.photo_left = editing.leftFile;
+            else if (editing.clearLeft) payload.photo_left = null;
+
+            if (editing.rightFile) payload.photo_right = editing.rightFile;
+            else if (editing.clearRight) payload.photo_right = null;
+
+            // seat_blocks (opcional)
+            const seatBlocks = hasBlocks
+                ? (editing.seat_blocks ?? []).map((b) => ({
+                    deck: Number(b.deck) as 1 | 2,
+                    kind: b.kind,
+                    count: Number(b.count),
+                    start_number: b.start_number ? Number(b.start_number) : undefined,
+                }))
+                : undefined;
+            if (seatBlocks) payload.seat_blocks = seatBlocks;
 
             if (editing.id) {
                 const p = updateBus(editing.id, payload);
@@ -167,6 +332,7 @@ export default function BusesView() {
                 addItem(created);
                 setTotal((t) => t + 1);
             }
+
             setShowForm(false);
             await fetchList();
         } finally {
@@ -175,8 +341,6 @@ export default function BusesView() {
     };
 
     // Delete
-    const busToDelete = confirmId != null ? items.find((i) => i.id === confirmId) : null;
-
     const onDelete = async () => {
         if (!confirmId) return;
         const id = confirmId;
@@ -200,8 +364,7 @@ export default function BusesView() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative w-full sm:w-96">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            {/* icon search */}
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="11" cy="11" r="7" strokeWidth="1.5" />
               <path d="M21 21l-3.6-3.6" strokeWidth="1.5" />
             </svg>
@@ -217,8 +380,7 @@ export default function BusesView() {
                 <div className="flex items-center gap-2">
                     <Badge>
             <span className="inline-flex items-center gap-1">
-              {/* icon bus */}
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <rect x="4" y="3" width="16" height="13" rx="2" strokeWidth="1.5" />
                 <path d="M6 16v2M18 16v2M4 11h16" strokeWidth="1.5" />
               </svg>
@@ -237,7 +399,7 @@ export default function BusesView() {
                 </div>
             </div>
 
-            {/* Tabla (desktop) / Cards (móvil) */}
+            {/* Tabla / Cards */}
             <div className="mt-4">
                 {loading ? (
                     <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -252,15 +414,15 @@ export default function BusesView() {
                         {/* Desktop */}
                         <div className="hidden rounded-2xl border md:block">
                             <div className="max-h-[60vh] overflow-y-auto overflow-x-auto overscroll-contain" style={{ scrollbarGutter: "stable both-edges" }}>
-                                <table className="w-full text-sm table-fixed min-w-[860px]">
+                                <table className="w-full text-sm table-fixed min-w-[980px]">
                                     <colgroup>
-                                        <col className="w-24" />  {/* Código */}
-                                        <col className="w-[18rem]" /> {/* Modelo/Año */}
-                                        <col className="w-28" />  {/* Placa */}
-                                        <col className="w-[14rem]" /> {/* Chasis */}
-                                        <col className="w-24" />  {/* Capacidad */}
-                                        <col className="w-24" />  {/* Estado */}
-                                        <col className="w-32" />  {/* Acciones */}
+                                        <col className="w-24" />
+                                        <col className="w-[16rem]" />
+                                        <col className="w-28" />
+                                        <col className="w-[14rem]" />
+                                        <col className="w-24" />
+                                        <col className="w-24" />
+                                        <col className="w-40" />
                                     </colgroup>
 
                                     <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
@@ -281,7 +443,6 @@ export default function BusesView() {
                                             <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-900">{b.code}</td>
                                             <td className="px-3 py-1.5">
                                                 <div className="flex items-center gap-2 truncate" title={`${b.model} (${b.year})`}>
-                                                    {/* icon model */}
                                                     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                         <rect x="4" y="3" width="16" height="13" rx="2" strokeWidth="1.5" />
                                                     </svg>
@@ -291,20 +452,20 @@ export default function BusesView() {
                                             </td>
                                             <td className="px-3 py-1.5 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1">
-                            {/* icon plate */}
-                              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <rect x="3" y="7" width="18" height="10" rx="2" strokeWidth="1.5" />
                             </svg>
                               {b.plate}
                           </span>
                                             </td>
                                             <td className="px-3 py-1.5">
-                                                <div className="truncate" title={b.chassis_number}>{b.chassis_number}</div>
+                                                <div className="truncate" title={b.chassis_number}>
+                                                    {b.chassis_number}
+                                                </div>
                                             </td>
                                             <td className="px-3 py-1.5 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1">
-                            {/* icon seats */}
-                              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <path d="M7 12h10M6 16h12" strokeWidth="1.5" />
                               <rect x="5" y="5" width="14" height="6" rx="2" strokeWidth="1.5" />
                             </svg>
@@ -316,37 +477,20 @@ export default function BusesView() {
                                             </td>
                                             <td className="px-3 py-1.5">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    {/* Ver */}
-                                                    <button
-                                                        title="Ver"
-                                                        className="rounded p-1 hover:bg-gray-100"
-                                                        onClick={() => setViewing(b)}
-                                                    >
+                                                    <button title="Ver" className="rounded p-1 hover:bg-gray-100" onClick={() => setViewing(b)}>
                                                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                             <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeWidth="1.5" />
                                                             <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
                                                         </svg>
                                                     </button>
-                                                    {/* Editar */}
-                                                    <button
-                                                        title="Editar"
-                                                        className="rounded p-1 hover:bg-gray-100"
-                                                        onClick={() => openEdit(b)}
-                                                    >
+                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100" onClick={() => openEdit(b)}>
                                                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                                                                  d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
+                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
                                                         </svg>
                                                     </button>
-                                                    {/* Eliminar */}
-                                                    <button
-                                                        title="Eliminar"
-                                                        className="rounded p-1 text-red-600 hover:bg-red-50"
-                                                        onClick={() => setConfirmId(b.id)}
-                                                    >
+                                                    <button title="Eliminar" className="rounded p-1 text-red-600 hover:bg-red-50" onClick={() => setConfirmId(b.id)}>
                                                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                                                                  d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7" />
+                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a 2 2 0 0 0 2-2V7" />
                                                         </svg>
                                                     </button>
                                                 </div>
@@ -368,7 +512,9 @@ export default function BusesView() {
                                     </div>
                                     <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
                                         <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Modelo/Año</dt>
-                                        <dd className="col-span-2 truncate">{b.model} · {b.year}</dd>
+                                        <dd className="col-span-2 truncate">
+                                            {b.model} · {b.year}
+                                        </dd>
 
                                         <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Placa</dt>
                                         <dd className="col-span-2 truncate">{b.plate}</dd>
@@ -390,15 +536,13 @@ export default function BusesView() {
                                         </button>
                                         <button className="inline-flex items-center gap-1.5 text-gray-700 hover:text-black hover:underline" onClick={() => openEdit(b)}>
                                             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                                                      d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
+                                                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
                                             </svg>
                                             Editar
                                         </button>
                                         <button className="inline-flex items-center gap-1.5 text-red-600 hover:underline" onClick={() => setConfirmId(b.id)}>
                                             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                                                      d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7" />
+                                                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a 2 2 0 0 0 2-2V7" />
                                             </svg>
                                             Eliminar
                                         </button>
@@ -416,7 +560,9 @@ export default function BusesView() {
                     <button className="rounded-full border px-3 py-1 text-sm disabled:opacity-50" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
                         ←
                     </button>
-                    <span className="text-sm text-gray-600">Página <b>{page}</b> / {totalPages}</span>
+                    <span className="text-sm text-gray-600">
+            Página <b>{page}</b> / {totalPages}
+          </span>
                     <button className="rounded-full border px-3 py-1 text-sm disabled:opacity-50" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
                         →
                     </button>
@@ -426,82 +572,188 @@ export default function BusesView() {
             {/* Modal Crear/Editar */}
             {showForm && editing && (
                 <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" onKeyDown={(e) => e.key === "Escape" && setShowForm(false)}>
-                    <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">{editing.id ? "Editar bus" : "Nuevo bus"}</h3>
-                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setShowForm(false)} aria-label="Cerrar">✕</button>
-                        </div>
+                    <div className="w-full max-w-3xl rounded-2xl bg-white shadow-lg flex max-h-[90vh]">
+                        <div className="flex w-full flex-col">
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-5 py-3 border-b">
+                                <h3 className="text-lg font-semibold">{editing.id ? "Editar bus" : "Nuevo bus"}</h3>
+                                <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setShowForm(false)} aria-label="Cerrar">
+                                    ✕
+                                </button>
+                            </div>
 
-                        <form className="mt-3 space-y-3" onSubmit={onSubmit}>
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                {/* Código: solo lectura en edición */}
-                                {editing?.id && (
-                                    <div>
-                                        <label className="text-sm text-gray-700">Código</label>
-                                        <input
-                                            disabled
-                                            className="mt-1 w-full rounded-xl border bg-gray-50 px-3 py-2 text-sm"
-                                            value={editing.code ?? ""}
-                                            readOnly
-                                        />
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            Se genera automáticamente en el backend.
-                                        </p>
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto px-5">
+                                <form id="busForm" className="mt-3 space-y-4" onSubmit={onSubmit}>
+                                    {/* Datos básicos */}
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        {editing?.id && (
+                                            <div>
+                                                <label className="text-sm text-gray-700">Código</label>
+                                                <input disabled className="mt-1 w-full rounded-xl border bg-gray-50 px-3 py-2 text-sm" value={editing.code ?? ""} readOnly />
+                                                <p className="mt-1 text-xs text-gray-500">Se genera automáticamente en el backend.</p>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <label className="text-sm text-gray-700">Año</label>
+                                            <input
+                                                type="number"
+                                                min={1980}
+                                                max={2100}
+                                                className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
+                                                value={editing.year}
+                                                onChange={(e) => setEditing((s) => ({ ...s!, year: e.target.value }))}
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                )}
 
-                                <div>
-                                    <label className="text-sm text-gray-700">Año</label>
-                                    <input type="number" min={1980} max={2100} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
-                                           value={editing.year} onChange={(e) => setEditing((s) => ({ ...s!, year: e.target.value }))} required />
-                                </div>
+                                    <div>
+                                        <label className="text-sm text-gray-700">Modelo</label>
+                                        <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" value={editing.model} onChange={(e) => setEditing((s) => ({ ...s!, model: e.target.value }))} required />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label className="text-sm text-gray-700">Placa</label>
+                                            <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" value={editing.plate} onChange={(e) => setEditing((s) => ({ ...s!, plate: e.target.value }))} required />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-700">Chasis</label>
+                                            <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" value={editing.chassis_number} onChange={(e) => setEditing((s) => ({ ...s!, chassis_number: e.target.value }))} required />
+                                        </div>
+                                    </div>
+
+                                    {/* Fotos (subida como en licencias) */}
+                                    <div>
+                                        <div className="mb-1 text-sm font-medium text-gray-800">Fotos del bus</div>
+
+                                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                            <PhotoInput
+                                                label="Frontal"
+                                                preview={frontPreview}
+                                                onFile={(f) => setEditing((s) => ({ ...s!, frontFile: f, clearFront: false }))}
+                                                onClear={() => setEditing((s) => ({ ...s!, frontFile: null, frontUrl: null, clearFront: true }))}
+                                            />
+                                            <PhotoInput
+                                                label="Posterior"
+                                                preview={backPreview}
+                                                onFile={(f) => setEditing((s) => ({ ...s!, backFile: f, clearBack: false }))}
+                                                onClear={() => setEditing((s) => ({ ...s!, backFile: null, backUrl: null, clearBack: true }))}
+                                            />
+                                            <PhotoInput
+                                                label="Lateral Izq."
+                                                preview={leftPreview}
+                                                onFile={(f) => setEditing((s) => ({ ...s!, leftFile: f, clearLeft: false }))}
+                                                onClear={() => setEditing((s) => ({ ...s!, leftFile: null, leftUrl: null, clearLeft: true }))}
+                                            />
+                                            <PhotoInput
+                                                label="Lateral Der."
+                                                preview={rightPreview}
+                                                onFile={(f) => setEditing((s) => ({ ...s!, rightFile: f, clearRight: false }))}
+                                                onClear={() => setEditing((s) => ({ ...s!, rightFile: null, rightUrl: null, clearRight: true }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Asientos */}
+                                    <div>
+                                        <div className="mb-1 flex items-center justify-between">
+                                            <div className="text-sm font-medium text-gray-800">Configurar asientos (bloques)</div>
+                                            <button type="button" onClick={addBlock} className="inline-flex items-center gap-1 rounded-xl border px-2 py-1 text-xs hover:bg-gray-50">
+                                                + Añadir bloque
+                                            </button>
+                                        </div>
+
+                                        <div className="rounded-2xl border">
+                                            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs text-gray-600">
+                                                <div className="col-span-2">Piso</div>
+                                                <div className="col-span-4">Tipo</div>
+                                                <div className="col-span-3">Cantidad</div>
+                                                <div className="col-span-3">N° inicial</div>
+                                            </div>
+                                            <div>
+                                                {(editing.seat_blocks ?? []).map((blk, idx) => (
+                                                    <div key={idx} className="grid grid-cols-12 items-center gap-2 border-t px-3 py-2">
+                                                        <div className="col-span-2">
+                                                            <select className="w-full rounded-lg border px-2 py-1 text-sm" value={blk.deck} onChange={(e) => updateBlock(idx, { deck: Number(e.target.value) as 1 | 2 })}>
+                                                                <option value={1}>1</option>
+                                                                <option value={2}>2</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-span-4">
+                                                            <select className="w-full rounded-lg border px-2 py-1 text-sm" value={blk.kind} onChange={(e) => updateBlock(idx, { kind: e.target.value as SeatBlock["kind"] })}>
+                                                                {KIND_OPTIONS.map((k) => (
+                                                                    <option key={k} value={k}>
+                                                                        {k.replace("_", " ")}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-span-3">
+                                                            <input type="number" min={0} className="w-full rounded-lg border px-2 py-1 text-sm" value={blk.count} onChange={(e) => updateBlock(idx, { count: e.target.value })} />
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                className="w-full rounded-lg border px-2 py-1 text-sm"
+                                                                value={blk.start_number ?? ""}
+                                                                onChange={(e) => updateBlock(idx, { start_number: e.target.value })}
+                                                                placeholder="Auto"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-1 text-right">
+                                                            <button type="button" onClick={() => removeBlock(idx)} className="rounded p-1 text-red-600 hover:bg-red-50">
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {(editing.seat_blocks ?? []).length === 0 && <div className="border-t px-3 py-3 text-sm text-gray-500">Sin bloques. Añade al menos uno.</div>}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-2 flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-gray-700">Capacidad</label>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    className="w-28 rounded-xl border px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-black/10"
+                                                    value={editing.capacity}
+                                                    onChange={(e) => setEditing((s) => ({ ...s!, capacity: e.target.value }))}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className={`text-sm ${capacityOk ? "text-green-600" : "text-red-600"}`}>
+                                                Total bloques: <b>{blocksSum}</b> / Capacidad: <b>{capacityNum}</b>
+                                            </div>
+                                        </div>
+
+                                        <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                                            <input type="checkbox" className="h-4 w-4" checked={editing?.active ?? true} onChange={(e) => setEditing((s) => ({ ...s!, active: e.target.checked }))} />
+                                            Activo
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm text-gray-700">Notas</label>
+                                        <textarea rows={3} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" value={editing.notes ?? ""} onChange={(e) => setEditing((s) => ({ ...s!, notes: e.target.value }))} />
+                                    </div>
+                                </form>
                             </div>
 
-                            <div>
-                                <label className="text-sm text-gray-700">Modelo</label>
-                                <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
-                                       value={editing.model} onChange={(e) => setEditing((s) => ({ ...s!, model: e.target.value }))} required />
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <div>
-                                    <label className="text-sm text-gray-700">Placa</label>
-                                    <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
-                                           value={editing.plate} onChange={(e) => setEditing((s) => ({ ...s!, plate: e.target.value }))} required />
-                                </div>
-                                <div>
-                                    <label className="text-sm text-gray-700">Chasis</label>
-                                    <input className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
-                                           value={editing.chassis_number} onChange={(e) => setEditing((s) => ({ ...s!, chassis_number: e.target.value }))} required />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <div>
-                                    <label className="text-sm text-gray-700">Capacidad</label>
-                                    <input type="number" min={1} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
-                                           value={editing.capacity} onChange={(e) => setEditing((s) => ({ ...s!, capacity: e.target.value }))} required />
-                                </div>
-                                <label className="mt-6 inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
-                                    <input type="checkbox" className="h-4 w-4" checked={editing.active}
-                                           onChange={(e) => setEditing((s) => ({ ...s!, active: e.target.checked }))} />
-                                    Activo
-                                </label>
-                            </div>
-
-                            <div>
-                                <label className="text-sm text-gray-700">Notas</label>
-                                <textarea rows={3} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
-                                          value={editing.notes ?? ""} onChange={(e) => setEditing((s) => ({ ...s!, notes: e.target.value }))} />
-                            </div>
-
-                            <div className="mt-2 flex justify-end gap-2">
-                                <button type="button" className="rounded-xl border px-3 py-2 text-sm" onClick={() => setShowForm(false)}>Cancelar</button>
-                                <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:bg-black hover:text-white disabled:opacity-50">
+                            {/* Footer */}
+                            <div className="border-t px-5 py-3 flex justify-end gap-2 bg-white">
+                                <button type="button" className="rounded-xl border px-3 py-2 text-sm" onClick={() => setShowForm(false)}>
+                                    Cancelar
+                                </button>
+                                <button form="busForm" disabled={saving || ((editing.seat_blocks ?? []).length > 0 && !capacityOk)} className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:bg-black hover:text-white disabled:opacity-50">
                                     {saving && <Spinner />} Guardar
                                 </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}
@@ -512,7 +764,9 @@ export default function BusesView() {
                     <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-lg">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">Detalle de bus</h3>
-                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setViewing(null)} aria-label="Cerrar">✕</button>
+                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setViewing(null)} aria-label="Cerrar">
+                                ✕
+                            </button>
                         </div>
 
                         <div className="mt-3 space-y-3 text-sm">
@@ -534,7 +788,9 @@ export default function BusesView() {
                         </div>
 
                         <div className="mt-4 flex justify-end">
-                            <button className="rounded-xl border px-3 py-2 text-sm" onClick={() => setViewing(null)}>Cerrar</button>
+                            <button className="rounded-xl border px-3 py-2 text-sm" onClick={() => setViewing(null)}>
+                                Cerrar
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -546,14 +802,17 @@ export default function BusesView() {
                     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">Eliminar bus</h3>
-                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setConfirmId(null)} aria-label="Cerrar">✕</button>
+                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setConfirmId(null)} aria-label="Cerrar">
+                                ✕
+                            </button>
                         </div>
                         <p className="mt-2 text-sm text-gray-600">
-                            ¿Seguro que deseas eliminar <b>{busToDelete?.code}</b>
-                            {busToDelete?.plate ? ` (placa ${busToDelete.plate})` : ""}? Esta acción no se puede deshacer.
+                            ¿Seguro que deseas eliminar <b>{items.find((i) => i.id === confirmId)?.code || ""}</b>? Esta acción no se puede deshacer.
                         </p>
                         <div className="mt-4 flex justify-end gap-2">
-                            <button className="rounded-xl border px-3 py-2 text-sm" onClick={() => setConfirmId(null)}>Cancelar</button>
+                            <button className="rounded-xl border px-3 py-2 text-sm" onClick={() => setConfirmId(null)}>
+                                Cancelar
+                            </button>
                             <button className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50" onClick={onDelete} disabled={deleting}>
                                 {deleting && <Spinner />} Eliminar
                             </button>
@@ -569,6 +828,38 @@ export default function BusesView() {
             <div>
                 <div className="text-[10px] uppercase tracking-wide text-gray-500">{label}</div>
                 <div className="mt-0.5 text-gray-800">{value}</div>
+            </div>
+        );
+    }
+
+    function PhotoInput({
+                            label,
+                            preview,
+                            onFile,
+                            onClear,
+                        }: {
+        label: string;
+        preview: string | null;
+        onFile: (f: File | null) => void;
+        onClear: () => void;
+    }) {
+        return (
+            <div className="rounded-2xl border p-3">
+                <div className="text-xs text-gray-700 mb-1">{label}</div>
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50 grid place-items-center">
+                    {preview ? <img src={preview} alt={label} className="max-h-full max-w-full object-contain" /> : <div className="text-xs text-gray-400">Sin imagen</div>}
+                </div>
+                <div className="mt-2 flex gap-2">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full rounded-xl border px-3 py-2 text-xs"
+                        onChange={(e) => onFile(e.target.files?.[0] || null)}
+                    />
+                    <button type="button" className="whitespace-nowrap rounded-xl border px-2 py-1 text-xs text-red-600 hover:bg-red-50" onClick={onClear}>
+                        Quitar
+                    </button>
+                </div>
             </div>
         );
     }

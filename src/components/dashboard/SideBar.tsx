@@ -14,11 +14,15 @@ type NavItem = Leaf | Group;
 
 const nav: NavItem[] = [
     { label: "Resumen", view: "resumen" },
+    {
+        label: "Gestionar pasajeros",
+        children: [
+            { label: "Pasajeros", view: "pasajeros" },
+        ],
+    },
+
     { label: "Ventas", view: "ventas" },
-    { label: "Listas de embarque", view: "embarque" },
-    { label: "Tardíos", view: "tardios" },
-    { label: "Taquilla", view: "taquilla" },
-    { label: "Rutas", view: "rutas" },
+
     {
         label: "Gestionar usuarios",
         children: [
@@ -31,12 +35,13 @@ const nav: NavItem[] = [
         children: [
             { label: "Oficinas", view: "oficinas" },
             { label: "Buses", view: "buses" },
-            { label: "Rutas", view: "rutas" },      // reutiliza tu vista de rutas
-            { label: "Salidas", view: "salidas" },  // Departures
+            { label: "Rutas", view: "rutas" },      // ✅ correcto
+            { label: "Salidas", view: "salidas" },  // ✅ correcto
             { label: "Empleados", view: "crews" },
             { label: "Licencias", view: "licenses" },
         ],
     },
+
 ];
 
 export default function Sidebar({ open, onClose, onNavigate, active }: Props) {
