@@ -10,7 +10,7 @@ type Props = {
     occupied: Array<Id>;
     selected: Id | null;
     onSelect: (id: Id | null) => void;
-    /** ej: 2 => [1,2] | [3,4]. Si no se pasa, se auto-detecta. */
+    /** ej: 2 => [1,2] | [3,4]. Si no se pasa, se auto-detecta (cuando hay row/col). */
     aisleAfterCol?: number;
 };
 
@@ -23,7 +23,7 @@ export default function BusSeatPicker({
                                       }: Props) {
     const [deck, setDeck] = useState<1 | 2>(1);
 
-    // --- LOG 0: props “crudas” ---
+    // LOG props crudas
     useEffect(() => {
         console.log("[SeatPicker] props in", {
             seatsLength: seats?.length,
@@ -34,6 +34,7 @@ export default function BusSeatPicker({
         });
     }, [seats, occupied, selected, aisleAfterCol]);
 
+    // separar por piso
     const decks = useMemo(() => {
         const group = (d: 1 | 2) => seats.filter((s) => s.deck === d);
         const out = { 1: group(1), 2: group(2) } as const;
@@ -41,19 +42,20 @@ export default function BusSeatPicker({
         return out;
     }, [seats]);
 
+    // detectar pasillo solo cuando hay row/col; si no hay, el generador secuencial usa 2+2
     const effectiveAisle = useMemo(() => {
         const v = aisleAfterCol ?? autoDetectAisle(decks[deck]);
         console.log("[SeatPicker] effectiveAisle", v, "(deck", deck, ")");
         return v;
     }, [aisleAfterCol, decks, deck]);
 
+    // construir filas
     const rows = useMemo(() => {
         const r = buildRowsForPicker(decks[deck], {
             aisleAfterCol: effectiveAisle,
             occupiedIds: new Set(occupied.map(String)),
             selectedId: selected != null ? String(selected) : null,
         });
-        // --- LOG 1: estructura final que consume react-seat-picker ---
         console.log("[SeatPicker] rows built", {
             deck,
             rowsCount: r.length,
@@ -63,7 +65,7 @@ export default function BusSeatPicker({
         return r;
     }, [decks, deck, effectiveAisle, occupied, selected]);
 
-    // react-seat-picker necesita que llames addCb/removeCb
+    // react-seat-picker: debes invocar addCb/removeCb
     const handleAdd = (
         { row, number, id }: { row: string | number; number: string | number; id?: Id },
         addCb: (row: string | number, number: string | number, id?: Id) => void
@@ -107,11 +109,9 @@ export default function BusSeatPicker({
             </div>
 
             <div className="p-3 overflow-x-auto">
-                {/* Si no hay filas, mostramos una pista visual + dejamos logs en consola */}
                 {rows.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-4 text-sm text-gray-600">
-                        No hay asientos para este piso. Revisa la consola (logs “[SeatPicker] …”)
-                        para ver el porqué (deck vacío, row/col nulos, etc.).
+                        No hay asientos para este piso. Revisa la consola (logs “[SeatPicker] …”).
                     </div>
                 ) : (
                     <SeatPicker
@@ -140,7 +140,7 @@ export default function BusSeatPicker({
           </span>
                 </div>
 
-                {/* Panelcito de debug opcional en pantalla */}
+                {/* Debug visual (opcional) */}
                 <DebugInfo
                     deck={deck}
                     hasDeck2={hasDeck2}
@@ -156,26 +156,29 @@ export default function BusSeatPicker({
     );
 }
 
-/* ---------------- helpers ---------------- */
+/* ================= helpers ================= */
 
-// Devuelve Array<Array<Seat|null>>, no objetos {title, seats}
+// Decide estrategia: usar row/col si existen; si no, generar grilla secuencial (2+2).
 function buildRowsForPicker(
     deckSeats: SeatSummary[],
     opts: { aisleAfterCol: number; occupiedIds: Set<string>; selectedId: string | null }
 ) {
     if (!deckSeats.length) return [];
+    const haveCoords = deckSeats.some((s) => s.row != null && s.col != null);
+    return haveCoords
+        ? buildUsingCoordinates(deckSeats, opts)
+        : buildSequentialGrid(deckSeats, opts);
+}
 
-    // Si row/col vienen null, los tratamos como 1 para evitar que TODO caiga en 0,0
-    const norm = deckSeats.map((s) => ({
-        ...s,
-        row: s.row ?? 1,
-        col: s.col ?? 1,
-    }));
-
+// ---- Usa row/col del backend
+function buildUsingCoordinates(
+    deckSeats: SeatSummary[],
+    opts: { aisleAfterCol: number; occupiedIds: Set<string>; selectedId: string | null }
+) {
+    const norm = deckSeats.map((s) => ({ ...s, row: (s.row ?? 1), col: (s.col ?? 1) }));
     const rowList = Array.from(new Set(norm.map((s) => s.row as number))).sort((a, b) => a - b);
     const colList = Array.from(new Set(norm.map((s) => s.col as number))).sort((a, b) => a - b);
 
-    // Mapa rápido row->col->seat
     const byRow = new Map<number, Map<number, SeatSummary>>();
     for (const s of norm) {
         const r = s.row as number;
@@ -185,46 +188,92 @@ function buildRowsForPicker(
     }
 
     const rows: Array<Array<any>> = [];
-
     for (const r of rowList) {
         const cols: Array<any> = [];
         for (const c of colList) {
-            // Pasillo: insertamos un hueco justo después de aisleAfterCol (col “a la izquierda” del pasillo)
-            if (c === opts.aisleAfterCol + 1) {
-                cols.push(null);
-            }
-
+            if (c === opts.aisleAfterCol + 1) cols.push(null); // hueco del pasillo
             const s = byRow.get(r)?.get(c);
             if (!s) {
                 cols.push(null);
                 continue;
             }
-
             const idStr = String(s.id);
-            const isOcc = opts.occupiedIds.has(idStr);
-            const isSel = opts.selectedId === idStr;
-
             cols.push({
                 id: s.id,
                 number: String(s.number),
-                isReserved: isOcc || !s.active,
-                isSelected: isSel,
+                isReserved: opts.occupiedIds.has(idStr) || !s.active,
+                isSelected: opts.selectedId === idStr,
                 tooltip: `#${s.number} · ${s.deck}º · ${prettyKind(s.kind)}${s.is_accessible ? " · Accesible" : ""}`,
             });
         }
         rows.push(cols);
     }
+    return rows;
+}
+
+// ---- No hay row/col → generamos grilla por número (patrón 2+2)
+function buildSequentialGrid(
+    deckSeats: SeatSummary[],
+    opts: { aisleAfterCol: number; occupiedIds: Set<string>; selectedId: string | null }
+) {
+    const seatsSorted = [...deckSeats].sort((a, b) => a.number - b.number);
+
+    // L = asientos a la izquierda; R = a la derecha. 2+2 por defecto.
+    const L = Math.max(1, opts.aisleAfterCol || 2);
+    const R = L; // si quieres 2+1 u otros, cambia aquí
+    const TOTAL_COLS = L + 1 /*pasillo*/ + R;
+
+    const rows: Array<Array<any>> = [];
+    let row: Array<any> = [];
+    let iInBlock = 0; // posición dentro del bloque sin contar pasillo
+
+    for (const s of seatsSorted) {
+        const isLeftSide = iInBlock < L;
+        const colIndexInRow = isLeftSide ? iInBlock : iInBlock + 1; // salta el pasillo
+
+        while (row.length < colIndexInRow) row.push(null);
+
+        const idStr = String(s.id);
+        row.push({
+            id: s.id,
+            number: String(s.number),
+            isReserved: opts.occupiedIds.has(idStr) || !s.active,
+            isSelected: opts.selectedId === idStr,
+            tooltip: `#${s.number} · ${s.deck}º · ${prettyKind(s.kind)}${s.is_accessible ? " · Accesible" : ""}`,
+        });
+
+        iInBlock++;
+        const blockSize = L + R;
+        if (iInBlock === blockSize) {
+            while (row.length < L) row.push(null);
+            if (row.length === L) row.push(null); // pasillo
+            while (row.length < TOTAL_COLS) row.push(null);
+
+            rows.push(row);
+            row = [];
+            iInBlock = 0;
+        }
+    }
+
+    if (row.length > 0) {
+        while (row.length < L) row.push(null);
+        if (row.length === L) row.push(null); // pasillo
+        while (row.length < TOTAL_COLS) row.push(null);
+        rows.push(row);
+    }
 
     return rows;
 }
 
-// Auto-detecta el pasillo buscando el gap más frecuente entre columnas
+// Detecta pasillo cuando hay coordenadas; si no hay, devolvemos 2 (2+2)
 function autoDetectAisle(seats: SeatSummary[]): number {
-    if (!seats.length) return 2;
+    const withCoords = seats.filter((s) => s.row != null && s.col != null);
+    if (!withCoords.length) return 2;
+
     const byRow: Record<number, number[]> = {};
-    for (const s of seats) {
-        const r = (s.row ?? 1) as number;
-        const c = (s.col ?? 1) as number;
+    for (const s of withCoords) {
+        const r = s.row as number,
+            c = s.col as number;
         (byRow[r] ??= []).push(c);
     }
     const score: Record<number, number> = {};
@@ -270,14 +319,22 @@ function DebugInfo(props: {
         <details className="mt-3 text-xs text-gray-500">
             <summary>Debug</summary>
             <div className="mt-1 grid grid-cols-2 gap-x-6 gap-y-1">
-                <span>deck:</span><b>{props.deck}</b>
-                <span>hasDeck2:</span><b>{String(props.hasDeck2)}</b>
-                <span>seats total:</span><b>{props.seatsLen}</b>
-                <span>deck1 seats:</span><b>{props.d1}</b>
-                <span>deck2 seats:</span><b>{props.d2}</b>
-                <span>aisleAfterCol:</span><b>{props.aisle}</b>
-                <span>rowsCount:</span><b>{props.rowsCount}</b>
-                <span>row0 length:</span><b>{props.row0Len ?? "-"}</b>
+                <span>deck:</span>
+                <b>{props.deck}</b>
+                <span>hasDeck2:</span>
+                <b>{String(props.hasDeck2)}</b>
+                <span>seats total:</span>
+                <b>{props.seatsLen}</b>
+                <span>deck1 seats:</span>
+                <b>{props.d1}</b>
+                <span>deck2 seats:</span>
+                <b>{props.d2}</b>
+                <span>aisleAfterCol:</span>
+                <b>{props.aisle}</b>
+                <span>rowsCount:</span>
+                <b>{props.rowsCount}</b>
+                <span>row0 length:</span>
+                <b>{props.row0Len ?? "-"}</b>
             </div>
         </details>
     );

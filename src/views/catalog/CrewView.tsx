@@ -313,26 +313,67 @@ export default function CrewView() {
                             <div className="max-h-[60vh] overflow-y-auto overflow-x-auto overscroll-contain" style={{ scrollbarGutter: "stable both-edges" }}>
                                 <table className="w-full text-sm table-fixed min-w-[980px]">
                                     <colgroup>
-                                        <col className="w-28" />          {/* Código */}
-                                        <col className="w-[16rem]" />     {/* Nombre */}
-                                        <col className="w-28" />          {/* Rol */}
-                                        <col className="w-28" />          {/* CI/DNI */}
-                                        <col className="w-28" />          {/* Teléfono */}
+                                        <col className="w-28"/>
+                                        {/* Código */}
+                                        <col className="w-[16rem]"/>
+                                        {/* Nombre */}
+                                        <col className="w-28"/>
+                                        {/* Rol */}
+                                        <col className="w-28"/>
+                                        {/* CI/DNI */}
+                                        <col className="w-28"/>
+                                        {/* Teléfono */}
 
-                                        <col className="w-24" />          {/* Estado */}
-                                        <col className="w-32" />          {/* Acciones */}
+                                        <col className="w-24"/>
+                                        {/* Estado */}
+                                        <col className="w-32"/>
+                                        {/* Acciones */}
                                     </colgroup>
 
                                     <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
                                     <tr>
-                                        <th className="px-3 py-2">Código</th>
-                                        <th className="px-3 py-2">Nombre</th>
-                                        <th className="px-3 py-2">Rol</th>
-                                        <th className="px-3 py-2">CI/DNI</th>
-                                        <th className="px-3 py-2">Teléfono</th>
-
-                                        <th className="px-3 py-2">Estado</th>
-                                        <th className="px-3 py-2 text-right">Acciones</th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconHash className="h-4 w-4 text-gray-500"/>
+                                                <span>Código</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconIdBadge className="h-4 w-4 text-gray-500"/>
+                                                <span>Nombre</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconShield className="h-4 w-4 text-gray-500"/>
+                                                <span>Rol</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconIdCard className="h-4 w-4 text-gray-500"/>
+                                                <span>CI/DNI</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconPhone className="h-4 w-4 text-gray-500"/>
+                                                <span>Teléfono</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCircle className="h-4 w-4 text-gray-500"/>
+                                                <span>Estado</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <IconSettings className="h-4 w-4 text-gray-500"/>
+                                                <span>Acciones</span>
+                                            </div>
+                                        </th>
                                     </tr>
                                     </thead>
 
@@ -341,8 +382,9 @@ export default function CrewView() {
                                         <tr key={c.id} className="border-t align-top">
                                             <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-900">{c.code}</td>
                                             <td className="px-3 py-1.5">
-                                                <div className="flex items-center gap-2 truncate" title={`${c.first_name} ${c.last_name}`}>
-                                                    <Avatar url={c.photo} size={20} />
+                                                <div className="flex items-center gap-2 truncate"
+                                                     title={`${c.first_name} ${c.last_name}`}>
+                                                    <Avatar url={c.photo} size={20}/>
                                                     <span className="truncate">{c.first_name} {c.last_name}</span>
                                                 </div>
                                             </td>
@@ -351,25 +393,37 @@ export default function CrewView() {
                                             </td>
                                             <td className="px-3 py-1.5 whitespace-nowrap">{c.national_id || "—"}</td>
                                             <td className="px-3 py-1.5 whitespace-nowrap">{c.phone || "—"}</td>
-                                            <td className="px-3 py-1.5"><Badge variant={c.active ? "success" : "muted"}>{c.active ? "Activo" : "Inactivo"}</Badge></td>
+                                            <td className="px-3 py-1.5"><Badge
+                                                variant={c.active ? "success" : "muted"}>{c.active ? "Activo" : "Inactivo"}</Badge>
+                                            </td>
                                             <td className="px-3 py-1.5">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    <button title="Ver" className="rounded p-1 hover:bg-gray-100" onClick={() => setViewing(c)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeWidth="1.5" />
-                                                            <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+                                                    <button title="Ver" className="rounded p-1 hover:bg-gray-100"
+                                                            onClick={() => setViewing(c)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"
+                                                                  strokeWidth="1.5"/>
+                                                            <circle cx="12" cy="12" r="3" strokeWidth="1.5"/>
                                                         </svg>
                                                     </button>
-                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100" onClick={() => openEdit(c)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                                                                  d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
+                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100"
+                                                            onClick={() => openEdit(c)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path strokeWidth="1.5" strokeLinecap="round"
+                                                                  strokeLinejoin="round"
+                                                                  d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z"/>
                                                         </svg>
                                                     </button>
-                                                    <button title="Eliminar" className="rounded p-1 text-red-600 hover:bg-red-50" onClick={() => setConfirmId(c.id)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                                                                  d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7" />
+                                                    <button title="Eliminar"
+                                                            className="rounded p-1 text-red-600 hover:bg-red-50"
+                                                            onClick={() => setConfirmId(c.id)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path strokeWidth="1.5" strokeLinecap="round"
+                                                                  strokeLinejoin="round"
+                                                                  d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7"/>
                                                         </svg>
                                                     </button>
                                                 </div>
@@ -387,10 +441,11 @@ export default function CrewView() {
                                 <div key={c.id} className="rounded-2xl border p-3">
                                     <div className="flex items-center justify-between">
                                         <div className="text-sm font-semibold">{c.code}</div>
-                                        <Badge variant={c.active ? "success" : "muted"}>{c.active ? "Activo" : "Inactivo"}</Badge>
+                                        <Badge
+                                            variant={c.active ? "success" : "muted"}>{c.active ? "Activo" : "Inactivo"}</Badge>
                                     </div>
                                     <div className="mt-2 flex items-center gap-2">
-                                        <Avatar url={c.photo} size={36} />
+                                        <Avatar url={c.photo} size={36}/>
                                         <div className="text-sm font-medium">{c.first_name} {c.last_name}</div>
                                     </div>
                                     <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
@@ -751,4 +806,59 @@ export default function CrewView() {
             </div>
         );
     }
+    function IconHash(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" strokeLinecap="round" d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18" />
+            </svg>
+        );
+    }
+    function IconIdBadge(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="5" y="3" width="14" height="18" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M9 7h6M9 11h6" />
+                <circle cx="12" cy="16.5" r="2" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconShield(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 3l8 4v5c0 5-3.5 9-8 9s-8-4-8-9V7l8-4z" />
+            </svg>
+        );
+    }
+    function IconIdCard(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth="1.5" />
+                <circle cx="9" cy="12" r="2.5" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M14 10h5M14 14h5" />
+            </svg>
+        );
+    }
+    function IconPhone(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" strokeLinecap="round" d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.2 1.3.6 2.6 1.2 3.8a2 2 0 0 1-.5 2.3l-1.3 1.3a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.3-.5c1.2.6 2.5 1 3.8 1.2A2 2 0 0 1 22 16.9z" />
+            </svg>
+        );
+    }
+    function IconCircle(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconSettings(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path strokeWidth="1.5" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 6.6 4.2l.1.1a1.7 1.7 0 0 0 1.9.3H8.7A1.7 1.7 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1.3 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 6l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+            </svg>
+        );
+    }
+
 }

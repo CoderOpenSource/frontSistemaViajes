@@ -16,6 +16,8 @@ type RequestOpts = {
     credentials?: RequestCredentials;
     timeoutMs?: number;
     authToken?: string | null;
+    /** NUEVO: indica cómo leer la respuesta (default: 'json') */
+    responseType?: "json" | "text" | "blob" | "arrayBuffer";
 };
 
 function buildUrl(path: string) {
@@ -46,6 +48,28 @@ async function parseResponse(res: Response) {
         }
     }
     return text;
+}
+
+/** NUEVO: lee la data según responseType (sin romper parseResponse) */
+async function readData(
+    res: Response,
+    responseType?: RequestOpts["responseType"]
+) {
+    if (responseType === "blob") {
+        if (res.ok) return await res.blob();
+        const text = await res.text().catch(() => "");
+        return text || null;
+    }
+    if (responseType === "arrayBuffer") {
+        if (res.ok) return await res.arrayBuffer();
+        const text = await res.text().catch(() => "");
+        return text || null;
+    }
+    if (responseType === "text") {
+        return await res.text();
+    }
+    // default (json + fallback)
+    return await parseResponse(res);
 }
 
 function buildApiError(status: number, data: unknown): ApiError {
@@ -140,6 +164,7 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
         credentials = "omit",
         timeoutMs = 15000,
         authToken = null,
+        responseType, // NUEVO
     } = opts;
 
     const controller = new AbortController();
@@ -149,11 +174,17 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
     const shouldAttachAuth = !isAuthPublic(path);
     const token = shouldAttachAuth ? (authToken ?? getAccessToken()) : null;
 
+    // Accept por defecto: si es blob usaremos PDF/octet-stream salvo que el caller lo sobreescriba
+    const defaultAccept =
+        responseType === "blob"
+            ? "application/pdf, application/octet-stream, */*"
+            : "application/json, */*";
+
     const finalHeaders = buildHeaders(
         {
             ...(headers || {}),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            Accept: (headers?.Accept as string) || "application/json, */*",
+            Accept: headers?.Accept || defaultAccept,
         },
         body
     );
@@ -170,7 +201,7 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
     try {
         // 1º intento
         let res = await makeFetch();
-        let data = await parseResponse(res);
+        let data = await readData(res, responseType);
 
         // 401 -> reintenta tras refresh (si es ruta con auth)
         if (res.status === 401 && shouldAttachAuth) {
@@ -180,7 +211,7 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
                     {
                         ...(headers || {}),
                         Authorization: `Bearer ${getAccessToken()}`,
-                        Accept: (headers?.Accept as string) || "application/json, */*",
+                        Accept: headers?.Accept || defaultAccept,
                     },
                     body
                 );
@@ -191,7 +222,7 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
                     body: buildBody(body), // reusamos body tal cual
                     signal: controller.signal,
                 });
-                data = await parseResponse(res);
+                data = await readData(res, responseType);
             } else {
                 clearSession();
                 showSessionExpiredOnce();

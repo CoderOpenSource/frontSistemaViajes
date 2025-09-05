@@ -366,3 +366,60 @@ export async function listUpcomingDeparturesLite(limit = 100) {
         status: d.status,
     }));
 }
+/** Convierte una fecha YYYY-MM-DD a rango ISO [00:00 local, +1 día) */
+function dayRangeISO(dateISO: string) {
+    // JS crea Date en local. toISOString() -> UTC (el backend suele guardar TZ-aware/UTC).
+    // Para La Paz (UTC-4), esto cubre exactamente el día local.
+    const startLocal = new Date(`${dateISO}T00:00:00`);
+    const endLocal = new Date(startLocal.getTime() + 24 * 60 * 60 * 1000);
+
+    return {
+        gte: startLocal.toISOString(),
+        lt: endLocal.toISOString(),
+    };
+}
+
+/** Lista salidas por fecha local exacta (todas las de ese día) */
+export async function listDeparturesByDate(
+    dateISO: string,
+    opts?: {
+        pageSize?: number;
+        includeStatuses?: DepartureStatus[]; // si quieres filtrar por estado en front
+        ordering?: string; // por defecto: "scheduled_departure_at"
+    }
+) {
+    const { gte, lt } = dayRangeISO(dateISO);
+    const { items, total } = await listDepartures<Departure>({
+        scheduled_gte: gte,
+        scheduled_lte: lt,
+        ordering: opts?.ordering ?? "scheduled_departure_at",
+        pageSize: opts?.pageSize ?? 500,
+        // NOTA: NO mandamos 'status' para no excluir salidas por estado.
+    });
+
+    let filtered = items;
+    if (opts?.includeStatuses?.length) {
+        const set = new Set(opts.includeStatuses);
+        filtered = items.filter((d) => set.has(d.status));
+    }
+    return { items: filtered, total: filtered.length };
+}
+
+/** Versión “lite” para selects (mapea a {id,label,...}) */
+export async function listDeparturesByDateLite(
+    dateISO: string,
+    limit = 500
+) {
+    const { items } = await listDeparturesByDate(dateISO, { pageSize: limit });
+    return items.map((d) => ({
+        id: d.id,
+        label: formatDepartureTitle({
+            route_name: d.route_name,
+            scheduled_departure_at: d.scheduled_departure_at,
+            bus_code: d.bus_code,
+        }),
+        status: d.status,
+        scheduled_at: d.scheduled_departure_at,
+        bus_code: d.bus_code,
+    }));
+}

@@ -43,7 +43,11 @@ function formatDate(iso: string) {
 function stringifyExtra(v: unknown) {
     try {
         if (typeof v === "string") {
-            try { return JSON.stringify(JSON.parse(v), null, 2); } catch { return v; }
+            try {
+                return JSON.stringify(JSON.parse(v), null, 2);
+            } catch {
+                return v;
+            }
         }
         if (v == null) return "";
         return JSON.stringify(v, null, 2);
@@ -73,8 +77,8 @@ export default function BitacoraView() {
                 setLoading(true);
                 const { items, total } = await listAudit({
                     q: qDebounced,
-                    page,                // 👈 usa la página tal cual
-                    parseExtra: true,    // 👈 si quieres, quita pageSize (global a 10)
+                    page, // usa la página tal cual
+                    parseExtra: true, // si quieres, quita pageSize (global a 10)
                 });
                 if (reqSeqRef.current !== mySeq) return;
                 setItems(items ?? []);
@@ -89,7 +93,7 @@ export default function BitacoraView() {
                 if (reqSeqRef.current === mySeq) setLoading(false);
             }
         },
-        [qDebounced, page]   // 👈 dependencias limpias
+        [qDebounced, page]
     );
 
     useEffect(() => {
@@ -137,53 +141,113 @@ export default function BitacoraView() {
                     <>
                         {/* Desktop table */}
                         <div className="hidden rounded-2xl border md:block">
-                            {/* scroller interno de la tabla */}
-                            <div
-                                className="max-h-[60vh] overflow-y-auto overscroll-contain"
-                                style={{ scrollbarGutter: "stable" }} // evita saltos por la barra
-                            >
-                                <table className="w-full text-sm">
-                                    <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
-                                    <tr>
-                                        <th className="px-4 py-2">Fecha</th>
-                                        <th className="px-4 py-2">Usuario</th>
-                                        <th className="px-4 py-2">Acción</th>
-                                        <th className="px-4 py-2">Entidad</th>
-                                        <th className="px-4 py-2">Registro</th>
-                                        <th className="px-4 py-2">Extra</th>
-                                    </tr>
-                                    </thead>
+                            <div className="overflow-x-auto">
+                                <div
+                                    className="max-h-[60vh] overflow-y-auto overscroll-contain"
+                                    style={{scrollbarGutter: "stable"}}
+                                >
+                                    <table className="min-w-full table-fixed text-sm">
+                                        <colgroup>
+                                            <col style={{width: "15rem"}}/>
+                                            {/* Fecha */}
+                                            <col style={{width: "10rem"}}/>
+                                            {/* Usuario */}
+                                            <col style={{width: "8rem"}}/>
+                                            {/* Acción */}
+                                            <col style={{width: "22rem"}}/>
+                                            {/* Entidad (normal) */}
+                                            <col style={{width: "8rem"}}/>
+                                            {/* Registro = 10rem contenido + 2rem padding */}
+                                            <col/>
+                                            {/* Extra */}
+                                        </colgroup>
 
-                                    <tbody>
-                                    {items.map((r) => (
-                                        <tr key={r.id} className="border-t align-top">
-                                            <td className="px-4 py-2 whitespace-nowrap font-medium text-gray-900">
-                                                {formatDate(r.created_at)}
-                                            </td>
-                                            <td className="px-4 py-2 whitespace-nowrap">{r.user_username ?? "—"}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap">{r.action}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap">{r.entity}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap">{r.record_id ?? "—"}</td>
-                                            <td className="px-4 py-2">
-                                                <ExtraCell value={r.extra} />
-                                            </td>
+                                        <thead
+                                            className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <IconCalendar className="h-4 w-4 text-gray-500"/>
+                                                    <span>Fecha</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <IconUser className="h-4 w-4 text-gray-500"/>
+                                                    <span>Usuario</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <IconLightning className="h-4 w-4 text-gray-500"/>
+                                                    <span>Acción</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <IconDatabase className="h-4 w-4 text-gray-500"/>
+                                                    <span>Entidad</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <IconHash className="h-4 w-4 text-gray-500"/>
+                                                    <span>Registro</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <IconFileText className="h-4 w-4 text-gray-500"/>
+                                                    <span>Extra</span>
+                                                </div>
+                                            </th>
                                         </tr>
-                                    ))}
-                                    </tbody>
+                                        </thead>
+
+
+                                        <tbody>
+                                        {items.map((r) => (
+                                            <tr key={r.id} className="border-t align-top">
+                                                <td className="px-4 py-2 whitespace-nowrap font-medium text-gray-900">
+                                                    {formatDate(r.created_at)}
+                                                </td>
+                                                <td className="px-4 py-2 whitespace-nowrap truncate">{r.user_username ?? "—"}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap truncate">{r.action}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap truncate">{r.entity}</td>
+
+                                                {/* REGISTRO: 10rem con elipsis */}
+                                                <td className="px-4 py-2">
+          <span
+              className="block w-[6rem] truncate"
+              title={String(r.record_id ?? "—")}
+          >
+            {r.record_id ?? "—"}
+          </span>
+                                                </td>
+
+                                                <td className="px-4 py-2">
+                                                <ExtraCell value={r.extra}/>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+
                                 </table>
                             </div>
                         </div>
+                    </div>
 
+                {/* Mobile cards */}
+                    <div className="grid gap-2 md:hidden">
+                {items.map((r) => (
+                    <div key={r.id} className="rounded-2xl border p-3">
+                <dl className="grid grid-cols-3 gap-x-3 gap-y-1">
+                    <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Fecha</dt>
+                    <dd className="col-span-2 truncate text-sm font-medium text-gray-900">
+                        {formatDate(r.created_at)}
+                    </dd>
 
-                        {/* Mobile cards */}
-                        <div className="grid gap-2 md:hidden">
-                            {items.map((r) => (
-                                <div key={r.id} className="rounded-2xl border p-3">
-                                    <dl className="grid grid-cols-3 gap-x-3 gap-y-1">
-                                        <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Fecha</dt>
-                                        <dd className="col-span-2 truncate text-sm font-medium text-gray-900">{formatDate(r.created_at)}</dd>
-
-                                        <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Usuario</dt>
+                    <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Usuario</dt>
                                         <dd className="col-span-2 truncate text-xs text-gray-700">{r.user_username ?? "—"}</dd>
 
                                         <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Acción</dt>
@@ -230,6 +294,53 @@ export default function BitacoraView() {
             )}
         </div>
     );
+    function IconCalendar(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M8 3v4M16 3v4M3 9h18" />
+            </svg>
+        );
+    }
+    function IconUser(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="8" r="4" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M4 20a8 8 0 0 1 16 0" />
+            </svg>
+        );
+    }
+    function IconLightning(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M13 2L3 14h7v8l11-12h-7V2z" />
+            </svg>
+        );
+    }
+    function IconDatabase(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <ellipse cx="12" cy="5" rx="9" ry="3" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M3 5v14c0 1.5 4 3 9 3s9-1.5 9-3V5" />
+            </svg>
+        );
+    }
+    function IconHash(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" strokeLinecap="round" d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18" />
+            </svg>
+        );
+    }
+    function IconFileText(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path strokeWidth="1.5" d="M14 2v6h6M9 13h6M9 17h6M9 9h1" />
+            </svg>
+        );
+    }
+
 }
 
 function ExtraCell({ value, compact = false }: { value: unknown; compact?: boolean }) {
@@ -237,12 +348,13 @@ function ExtraCell({ value, compact = false }: { value: unknown; compact?: boole
     const pretty = useMemo(() => stringifyExtra(value), [value]);
     const isLong = pretty.length > 140;
 
+    const preBase =
+        `max-h-60 overflow-auto whitespace-pre-wrap break-words ` + // wrap y scroll interno
+        `rounded-xl bg-gray-100 p-3 text-xs ` +
+        (compact ? "text-[11px]" : "");
+
     if (!isLong) {
-        return (
-            <pre className={`max-h-40 overflow-auto rounded-xl bg-gray-100 p-3 text-xs ${compact ? "text-[11px]" : ""}`}>{
-                pretty || "—"
-            }</pre>
-        );
+        return <pre className={preBase}>{pretty || "—"}</pre>;
     }
 
     return (
@@ -253,11 +365,8 @@ function ExtraCell({ value, compact = false }: { value: unknown; compact?: boole
             >
                 {open ? "Ocultar" : "Ver JSON"}
             </button>
-            {open && (
-                <pre className={`max-h-60 overflow-auto rounded-xl bg-gray-100 p-3 text-xs ${compact ? "text-[11px]" : ""}`}>{
-                    pretty
-                }</pre>
-            )}
+            {open && <pre className={preBase}>{pretty}</pre>}
         </div>
     );
+
 }

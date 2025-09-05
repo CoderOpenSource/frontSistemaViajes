@@ -9,6 +9,7 @@ import {
     type Role,
     ROLES,
 } from "../../services/users.ts";
+import { listActiveOfficesLite } from "../../services/office.ts"; // 👈 NEW
 
 const roleLabel = (r?: Role) =>
     r === "VEND" ? "Vendedor" : r === "CAJE" ? "Cajero" : "—";
@@ -22,6 +23,7 @@ type FormUser = {
     first_name?: string;
     last_name?: string;
     active?: boolean;
+    office?: number | null; // 👈 NEW
 };
 
 const Spinner = () => (
@@ -62,6 +64,10 @@ export default function UsuariosView() {
     const [confirmId, setConfirmId] = useState<User["id"] | null>(null);
     const [deleting, setDeleting] = useState(false);
 
+    // 👇 NEW: combo oficinas
+    const [officeOptions, setOfficeOptions] = useState<Array<{ id: number | string; label: string }>>([]);
+    const [officesLoading, setOfficesLoading] = useState(false);
+
     // helpers UI optimista
     const replaceItem = useCallback((updated: User) => {
         setItems((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
@@ -85,8 +91,7 @@ export default function UsuariosView() {
                 setLoading(true);
                 const { items, total } = await listUsers({
                     q: qDebounced,
-                    page,              // 👈 usa la página actual
-                    // pageSize: 10     // opcional: quítalo; DRF ya usa global 10
+                    page,
                 });
                 if (reqSeqRef.current !== mySeq) return;
                 setItems(items ?? []);
@@ -101,12 +106,30 @@ export default function UsuariosView() {
                 if (reqSeqRef.current === mySeq) setLoading(false);
             }
         },
-        [qDebounced, page]   // 👈 dependencias limpias
+        [qDebounced, page]
     );
 
     useEffect(() => {
         fetchList();
     }, [fetchList]);
+
+    // 👇 NEW: cargar oficinas activas
+    const fetchOffices = useCallback(async () => {
+        try {
+            setOfficesLoading(true);
+            const data = await listActiveOfficesLite();
+            setOfficeOptions(data);
+        } catch (e: any) {
+            toast.error(e?.message || "No se pudieron cargar oficinas");
+        } finally {
+            setOfficesLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Carga oficinas al abrir el formulario para tener datos frescos
+        if (showForm) fetchOffices();
+    }, [showForm, fetchOffices]);
 
     // ------- Form helpers -------
     const openCreate = () => {
@@ -118,6 +141,7 @@ export default function UsuariosView() {
             last_name: "",
             password: "",
             active: true,
+            office: null, // 👈 NEW
         });
         setShowForm(true);
     };
@@ -131,13 +155,24 @@ export default function UsuariosView() {
             first_name: u.first_name ?? "",
             last_name: u.last_name ?? "",
             active: (u as any).active ?? (u as any).is_active ?? true,
+            office: (u.office ?? null) as number | null, // 👈 NEW
         });
         setShowForm(true);
     };
 
+    // 👇 helper NEW: validación local office requerida por rol
+    const isOfficeRequired = (role: Role) => role === "VEND" || role === "CAJE";
+
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editing) return;
+
+        // Validación: si el rol requiere oficina
+        if (isOfficeRequired(editing.role) && (editing.office == null || editing.office === ("" as any))) {
+            toast.error("Selecciona una oficina para el rol elegido.");
+            return;
+        }
+
         setSaving(true);
         try {
             if (editing.id) {
@@ -149,6 +184,7 @@ export default function UsuariosView() {
                     first_name: editing.first_name,
                     last_name: editing.last_name,
                     active: editing.active,
+                    office: editing.office ?? null, // 👈 NEW
                     ...(editing.password ? { password: editing.password } : {}),
                 });
                 toast.promise(p, {
@@ -156,8 +192,8 @@ export default function UsuariosView() {
                     success: "Usuario actualizado",
                     error: (err) => err?.message || "Error al actualizar",
                 });
-                const updated = await p;          // 👈 resultado real del backend
-                replaceItem(updated);             // UI inmediata
+                const updated = await p;
+                replaceItem(updated);
             } else {
                 // CREAR
                 const p = createUser({
@@ -168,19 +204,19 @@ export default function UsuariosView() {
                     first_name: editing.first_name,
                     last_name: editing.last_name,
                     active: editing.active,
+                    office: editing.office ?? null, // 👈 NEW
                 });
                 toast.promise(p, {
                     loading: "Creando usuario…",
                     success: "Usuario creado",
                     error: (err) => err?.message || "Error al crear",
                 });
-                const created = await p;          // 👈 resultado real del backend
-                addItem(created);                 // UI inmediata
+                const created = await p;
+                addItem(created);
                 setTotal((t) => t + 1);
             }
             setShowForm(false);
 
-            // sincroniza con backend (por si cambió algo fuera de la página actual)
             await fetchList();
         } finally {
             setSaving(false);
@@ -201,8 +237,8 @@ export default function UsuariosView() {
                 success: "Usuario eliminado",
                 error: (err) => err?.message || "Error al eliminar",
             });
-            await p;                 // 👈 espera al backend de verdad
-            removeItem(id);          // UI inmediata
+            await p;
+            removeItem(id);
             setTotal((t) => Math.max(0, t - 1));
             setConfirmId(null);
 
@@ -248,7 +284,7 @@ export default function UsuariosView() {
                 </div>
             </div>
 
-            {/* Tabla (desktop) / Cards (móvil) */}
+            {/* Tabla */}
             <div className="mt-4">
                 {loading ? (
                     <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -262,22 +298,55 @@ export default function UsuariosView() {
                     <>
                         {/* Desktop table */}
                         <div className="hidden rounded-2xl border md:block">
-                            {/* scroller interno */}
-                            <div
-                                className="max-h-[60vh] overflow-y-auto overscroll-contain"
-                                style={{ scrollbarGutter: "stable" }}
-                            >
+                            <div className="max-h=[60vh] overflow-y-auto overscroll-contain" style={{ scrollbarGutter: "stable" }}>
                                 <table className="w-full text-sm">
                                     <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
                                     <tr>
-                                        <th className="px-4 py-2">Usuario</th>
-                                        <th className="px-4 py-2">Nombre</th>
-                                        <th className="px-4 py-2">Email</th>
-                                        <th className="px-4 py-2">Rol</th>
-                                        <th className="px-4 py-2">Estado</th>
-                                        <th className="w-44 px-4 py-2 text-right">Acciones</th>
+                                        <th className="px-4 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconUser className="h-4 w-4 text-gray-500"/>
+                                                <span>Usuario</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconIdBadge className="h-4 w-4 text-gray-500"/>
+                                                <span>Nombre</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconMail className="h-4 w-4 text-gray-500"/>
+                                                <span>Email</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconShield className="h-4 w-4 text-gray-500"/>
+                                                <span>Rol</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconBuilding className="h-4 w-4 text-gray-500"/>
+                                                <span>Oficina</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCircle className="h-4 w-4 text-gray-500"/>
+                                                <span>Estado</span>
+                                            </div>
+                                        </th>
+                                        <th className="w-44 px-4 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <IconSettings className="h-4 w-4 text-gray-500"/>
+                                                <span>Acciones</span>
+                                            </div>
+                                        </th>
                                     </tr>
                                     </thead>
+
 
                                     <tbody>
                                     {items.map((u) => (
@@ -290,19 +359,21 @@ export default function UsuariosView() {
                                             <td className="px-4 py-2">
                                                 <Badge>{roleLabel(u.role as Role)}</Badge>
                                             </td>
+                                            <td className="px-4 py-2">{u.office_name ?? "—"}</td>
+                                            {/* 👈 NEW */}
                                             <td className="px-4 py-2">
                                                 <Badge variant={u.active ? "success" : "muted"}>
                                                     {u.active ? "Activo" : "Inactivo"}
                                                 </Badge>
                                             </td>
-
                                             <td className="px-4 py-2">
                                                 <div className="flex items-center justify-end gap-4">
                                                     <button
                                                         className="inline-flex items-center gap-1.5 text-gray-700 hover:text-black hover:underline"
                                                         onClick={() => openEdit(u)}
                                                     >
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
                                                             <path
                                                                 strokeWidth="1.5"
                                                                 strokeLinecap="round"
@@ -317,7 +388,8 @@ export default function UsuariosView() {
                                                         className="inline-flex items-center gap-1.5 text-red-600 hover:underline"
                                                         onClick={() => setConfirmId(u.id)}
                                                     >
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
                                                             <path
                                                                 strokeWidth="1.5"
                                                                 strokeLinecap="round"
@@ -336,47 +408,29 @@ export default function UsuariosView() {
                             </div>
                         </div>
 
-
                         {/* Mobile cards */}
-                        {/* Mobile cards (con etiquetas tipo <th>) */}
                         <div className="grid gap-2 md:hidden">
                             {items.map((u) => {
-                                const fullName =
-                                    [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
+                                const fullName = [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
                                 return (
                                     <div key={u.id} className="rounded-2xl border p-3">
                                         <dl className="grid grid-cols-3 gap-x-3 gap-y-1">
-                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">
-                                                Usuario
-                                            </dt>
-                                            <dd className="col-span-2 truncate text-sm font-medium text-gray-900">
-                                                {u.username}
-                                            </dd>
+                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Usuario</dt>
+                                            <dd className="col-span-2 truncate text-sm font-medium text-gray-900">{u.username}</dd>
 
-                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">
-                                                Nombre
-                                            </dt>
-                                            <dd className="col-span-2 truncate text-xs text-gray-700">
-                                                {fullName}
-                                            </dd>
+                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Nombre</dt>
+                                            <dd className="col-span-2 truncate text-xs text-gray-700">{fullName}</dd>
 
-                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">
-                                                Email
-                                            </dt>
-                                            <dd className="col-span-2 truncate text-xs text-gray-600">
-                                                {u.email}
-                                            </dd>
+                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Email</dt>
+                                            <dd className="col-span-2 truncate text-xs text-gray-600">{u.email}</dd>
 
-                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">
-                                                Rol
-                                            </dt>
-                                            <dd className="col-span-2">
-                                                <Badge>{roleLabel(u.role as Role)}</Badge>
-                                            </dd>
+                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Rol</dt>
+                                            <dd className="col-span-2"><Badge>{roleLabel(u.role as Role)}</Badge></dd>
 
-                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">
-                                                Estado
-                                            </dt>
+                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Oficina</dt>
+                                            <dd className="col-span-2 text-xs text-gray-700">{u.office_name ?? "—"}</dd>
+
+                                            <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Estado</dt>
                                             <dd className="col-span-2">
                                                 <Badge variant={u.active ? "success" : "muted"}>
                                                     {u.active ? "Activo" : "Inactivo"}
@@ -390,12 +444,7 @@ export default function UsuariosView() {
                                                 onClick={() => openEdit(u)}
                                             >
                                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                    <path
-                                                        strokeWidth="1.5"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z"
-                                                    />
+                                                    <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
                                                 </svg>
                                                 <span>Editar</span>
                                             </button>
@@ -405,12 +454,7 @@ export default function UsuariosView() {
                                                 onClick={() => setConfirmId(u.id)}
                                             >
                                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                    <path
-                                                        strokeWidth="1.5"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7"
-                                                    />
+                                                    <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7" />
                                                 </svg>
                                                 <span>Eliminar</span>
                                             </button>
@@ -419,7 +463,6 @@ export default function UsuariosView() {
                                 );
                             })}
                         </div>
-
                     </>
                 )}
             </div>
@@ -434,9 +477,7 @@ export default function UsuariosView() {
                     >
                         ←
                     </button>
-                    <span className="text-sm text-gray-600">
-            Página <b>{page}</b> / {totalPages}
-          </span>
+                    <span className="text-sm text-gray-600">Página <b>{page}</b> / {totalPages}</span>
                     <button
                         className="rounded-full border px-3 py-1 text-sm disabled:opacity-50"
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -458,9 +499,7 @@ export default function UsuariosView() {
                     <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">{editing.id ? "Editar usuario" : "Nuevo usuario"}</h3>
-                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setShowForm(false)} aria-label="Cerrar">
-                                ✕
-                            </button>
+                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setShowForm(false)} aria-label="Cerrar">✕</button>
                         </div>
 
                         <form className="mt-3 space-y-3" onSubmit={onSubmit}>
@@ -483,6 +522,7 @@ export default function UsuariosView() {
                                     required
                                 />
                             </div>
+
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label className="text-sm text-gray-700">Nombre</label>
@@ -517,7 +557,34 @@ export default function UsuariosView() {
                                         ))}
                                     </select>
                                 </div>
-                                <label className="mt-6 inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+
+                                {/* Oficina */}
+                                <div>
+                                    <label className="text-sm text-gray-700">Oficina</label>
+                                    <select
+                                        className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
+                                        value={editing.office ?? ""}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setEditing((s) => ({ ...s!, office: v === "" ? null : Number(v) }));
+                                        }}
+                                        disabled={officesLoading}
+                                        required={isOfficeRequired(editing.role)}
+                                    >
+                                        <option value="">
+                                            {officesLoading ? "Cargando oficinas…" : "Seleccione una oficina"}
+                                        </option>
+                                        {officeOptions.map((o) => (
+                                            <option key={o.id} value={String(o.id)}>
+                                                {o.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
                                     <input
                                         type="checkbox"
                                         className="h-4 w-4"
@@ -545,7 +612,10 @@ export default function UsuariosView() {
                                 <button type="button" className="rounded-xl border px-3 py-2 text-sm" onClick={() => setShowForm(false)}>
                                     Cancelar
                                 </button>
-                                <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:bg-black hover:text-white disabled:opacity-50">
+                                <button
+                                    disabled={saving}
+                                    className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:bg-black hover:text-white disabled:opacity-50"
+                                >
                                     {saving && <Spinner />} Guardar
                                 </button>
                             </div>
@@ -565,9 +635,7 @@ export default function UsuariosView() {
                     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">Eliminar usuario</h3>
-                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setConfirmId(null)} aria-label="Cerrar">
-                                ✕
-                            </button>
+                            <button className="rounded-full p-1 text-gray-500 hover:bg-gray-100" onClick={() => setConfirmId(null)} aria-label="Cerrar">✕</button>
                         </div>
                         <p className="mt-2 text-sm text-gray-600">
                             ¿Seguro que deseas eliminar <b>{userToDelete?.username}</b>
@@ -577,7 +645,11 @@ export default function UsuariosView() {
                             <button className="rounded-xl border px-3 py-2 text-sm" onClick={() => setConfirmId(null)}>
                                 Cancelar
                             </button>
-                            <button className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50" onClick={onDelete} disabled={deleting}>
+                            <button
+                                className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                onClick={onDelete}
+                                disabled={deleting}
+                            >
                                 {deleting && <Spinner />} Eliminar
                             </button>
                         </div>
@@ -586,4 +658,60 @@ export default function UsuariosView() {
             )}
         </div>
     );
+    function IconUser(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="8" r="4" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M4 20a8 8 0 0 1 16 0" />
+            </svg>
+        );
+    }
+    function IconIdBadge(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="5" y="3" width="14" height="18" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M9 7h6M9 11h6" />
+                <circle cx="12" cy="16.5" r="2" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconMail(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M3 7l9 6 9-6" />
+            </svg>
+        );
+    }
+    function IconShield(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 3l8 4v5c0 5-3.5 9-8 9s-8-4-8-9V7l8-4z" />
+            </svg>
+        );
+    }
+    function IconBuilding(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="4" y="3" width="16" height="18" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M8 7h2M8 11h2M8 15h2M14 7h2M14 11h2M14 15h2M4 19h16" />
+            </svg>
+        );
+    }
+    function IconCircle(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconSettings(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path strokeWidth="1.5" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 6.6 4.2l.1.1a1.7 1.7 0 0 0 1.9.3H8.7A1.7 1.7 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1.3 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 6l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+            </svg>
+        );
+    }
+
 }

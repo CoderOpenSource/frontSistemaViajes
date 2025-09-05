@@ -304,14 +304,45 @@ export default function PasajerosView() {
     const columnas = (
         <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
         <tr>
-            <th className="px-4 py-2">Documento</th>
-            <th className="px-4 py-2">Nombre</th>
-            <th className="px-4 py-2">Contacto</th>
-            <th className="px-4 py-2">Estado</th>
-            <th className="px-4 py-2">Menor</th>
-            <th className="w-40 px-4 py-2 text-right">Acciones</th>
+            <th className="px-4 py-2 text-left">
+                <div className="flex items-center gap-2">
+                    <IconIdCard className="h-4 w-4 text-gray-500"/>
+                    <span>Documento</span>
+                </div>
+            </th>
+            <th className="px-4 py-2 text-left">
+                <div className="flex items-center gap-2">
+                    <IconUser className="h-4 w-4 text-gray-500"/>
+                    <span>Nombre</span>
+                </div>
+            </th>
+            <th className="px-4 py-2 text-left">
+                <div className="flex items-center gap-2">
+                    <IconPhone className="h-4 w-4 text-gray-500"/>
+                    <span>Contacto</span>
+                </div>
+            </th>
+            <th className="px-4 py-2 text-left">
+                <div className="flex items-center gap-2">
+                    <IconCircle className="h-4 w-4 text-gray-500"/>
+                    <span>Estado</span>
+                </div>
+            </th>
+            <th className="px-4 py-2 text-left">
+                <div className="flex items-center gap-2">
+                    <IconChild className="h-4 w-4 text-gray-500"/>
+                    <span>Menor</span>
+                </div>
+            </th>
+            <th className="w-40 px-4 py-2 text-right">
+                <div className="flex items-center justify-end gap-2">
+                    <IconSettings className="h-4 w-4 text-gray-500"/>
+                    <span>Acciones</span>
+                </div>
+            </th>
         </tr>
         </thead>
+
     );
 
     return (
@@ -321,8 +352,8 @@ export default function PasajerosView() {
                 <div className="relative w-full sm:w-96">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="11" cy="11" r="7" strokeWidth="1.5" />
-              <path d="M21 21l-3.6-3.6" strokeWidth="1.5" />
+              <circle cx="11" cy="11" r="7" strokeWidth="1.5"/>
+              <path d="M21 21l-3.6-3.6" strokeWidth="1.5"/>
             </svg>
           </span>
                     <input
@@ -980,4 +1011,52 @@ export default function PasajerosView() {
             )}
         </div>
     );
+    function IconIdCard(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth="1.5" />
+                <circle cx="9" cy="12" r="2.5" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M14 10h5M14 14h5" />
+            </svg>
+        );
+    }
+    function IconUser(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="8" r="4" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M4 20a8 8 0 0 1 16 0" />
+            </svg>
+        );
+    }
+    function IconPhone(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" strokeLinecap="round" d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.2 1.3.6 2.6 1.2 3.8a2 2 0 0 1-.5 2.3l-1.3 1.3a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.3-.5c1.2.6 2.5 1 3.8 1.2A2 2 0 0 1 22 16.9z" />
+            </svg>
+        );
+    }
+    function IconCircle(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconChild(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="7" r="3" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M5 21v-2a5 5 0 0 1 10 0v2M19 21v-2c0-2-1.5-3.5-3.5-4" />
+            </svg>
+        );
+    }
+    function IconSettings(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path strokeWidth="1.5" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 6.6 4.2l.1.1a1.7 1.7 0 0 0 1.9.3H8.7A1.7 1.7 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1.3 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 6l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+            </svg>
+        );
+    }
+
 }

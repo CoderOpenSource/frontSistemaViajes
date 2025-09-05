@@ -459,23 +459,54 @@ export default function RoutesView() {
                             <div className="max-h-[60vh] overflow-y-auto overflow-x-auto overscroll-contain" style={{ scrollbarGutter: "stable both-edges" }}>
                                 <table className="w-full min-w-[900px] table-fixed text-sm">
                                     <colgroup>
-                                        <col className="w-56" />
-                                        <col className="w-40" />
-                                        <col className="w-40" />
-                                        <col className="w-20" />
-                                        <col className="w-24" />
-                                        <col className="w-[320px]" />
+                                        <col className="w-56"/>
+                                        <col className="w-40"/>
+                                        <col className="w-40"/>
+                                        <col className="w-20"/>
+                                        <col className="w-24"/>
+                                        <col className="w-[320px]"/>
                                     </colgroup>
                                     <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
                                     <tr>
-                                        <th className="px-3 py-2">Nombre</th>
-                                        <th className="px-3 py-2">Origen</th>
-                                        <th className="px-3 py-2">Destino</th>
-                                        <th className="px-3 py-2">Paradas</th>
-                                        <th className="px-3 py-2">Estado</th>
-                                        <th className="px-3 py-2 text-right">Acciones</th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconIdBadge className="h-4 w-4 text-gray-500"/>
+                                                <span>Nombre</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconMapPin className="h-4 w-4 text-gray-500"/>
+                                                <span>Origen</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconFlag className="h-4 w-4 text-gray-500"/>
+                                                <span>Destino</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconRoute className="h-4 w-4 text-gray-500"/>
+                                                <span>Paradas</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCircle className="h-4 w-4 text-gray-500"/>
+                                                <span>Estado</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <IconSettings className="h-4 w-4 text-gray-500"/>
+                                                <span>Acciones</span>
+                                            </div>
+                                        </th>
                                     </tr>
                                     </thead>
+
                                     <tbody>
                                     {items.map((r) => {
                                         const stopsOrdered = [...(r.stops ?? [])].sort((a, b) => a.order - b.order);
@@ -490,12 +521,14 @@ export default function RoutesView() {
                                                 <td className="px-3 py-1.5 whitespace-nowrap">{r.destination_code || "—"}</td>
                                                 <td className="px-3 py-1.5 whitespace-nowrap">{stopsOrdered.length}</td>
                                                 <td className="px-3 py-1.5">
-                                                    <Badge variant={r.active ? "success" : "muted"}>{r.active ? "Activa" : "Inactiva"}</Badge>
+                                                    <Badge
+                                                        variant={r.active ? "success" : "muted"}>{r.active ? "Activa" : "Inactiva"}</Badge>
                                                 </td>
                                                 <td className="px-3 py-1.5">
                                                     <div className="flex items-center justify-end gap-1.5">
                                                         {stopsOrdered.length >= 2 && (
-                                                            <div className="mr-auto hidden max-w-[190px] truncate text-xs text-gray-600 lg:block">
+                                                            <div
+                                                                className="mr-auto hidden max-w-[190px] truncate text-xs text-gray-600 lg:block">
                                                                 {stopsOrdered.map((s, idx) => (
                                                                     <span key={s.id}>
                                       {idx > 0 ? " → " : ""}
@@ -505,31 +538,47 @@ export default function RoutesView() {
                                                             </div>
                                                         )}
                                                         {/* Ver (ojito) */}
-                                                        <button title="Ver" className="rounded p-1 hover:bg-gray-100" onClick={() => openPreviewFromRoute(r)}>
-                                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeWidth="1.5" />
-                                                                <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+                                                        <button title="Ver" className="rounded p-1 hover:bg-gray-100"
+                                                                onClick={() => openPreviewFromRoute(r)}>
+                                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                                 stroke="currentColor">
+                                                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"
+                                                                      strokeWidth="1.5"/>
+                                                                <circle cx="12" cy="12" r="3" strokeWidth="1.5"/>
                                                             </svg>
                                                         </button>
 
-                                                        <button title="Editar" className="rounded p-1 hover:bg-gray-100" onClick={() => openEdit(r)}>
-                                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
+                                                        <button title="Editar" className="rounded p-1 hover:bg-gray-100"
+                                                                onClick={() => openEdit(r)}>
+                                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                                 stroke="currentColor">
+                                                                <path strokeWidth="1.5" strokeLinecap="round"
+                                                                      strokeLinejoin="round"
+                                                                      d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z"/>
                                                             </svg>
                                                         </button>
                                                         {stopsOrdered.length > 3 && (
                                                             <>
-                                                                <button title="Subir parada (intermedia)" className="rounded p-1 hover:bg-gray-100" onClick={() => doReorder(r, 1, -1)}>
+                                                                <button title="Subir parada (intermedia)"
+                                                                        className="rounded p-1 hover:bg-gray-100"
+                                                                        onClick={() => doReorder(r, 1, -1)}>
                                                                     ↑
                                                                 </button>
-                                                                <button title="Bajar parada (intermedia)" className="rounded p-1 hover:bg-gray-100" onClick={() => doReorder(r, stopsOrdered.length - 2, +1)}>
+                                                                <button title="Bajar parada (intermedia)"
+                                                                        className="rounded p-1 hover:bg-gray-100"
+                                                                        onClick={() => doReorder(r, stopsOrdered.length - 2, +1)}>
                                                                     ↓
                                                                 </button>
                                                             </>
                                                         )}
-                                                        <button title="Eliminar" className="rounded p-1 text-red-600 hover:bg-red-50" onClick={() => setConfirmId(r.id)}>
-                                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7" />
+                                                        <button title="Eliminar"
+                                                                className="rounded p-1 text-red-600 hover:bg-red-50"
+                                                                onClick={() => setConfirmId(r.id)}>
+                                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                                 stroke="currentColor">
+                                                                <path strokeWidth="1.5" strokeLinecap="round"
+                                                                      strokeLinejoin="round"
+                                                                      d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7"/>
                                                             </svg>
                                                         </button>
                                                     </div>
@@ -875,4 +924,53 @@ export default function RoutesView() {
             </div>
         );
     }
+    function IconIdBadge(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="5" y="3" width="14" height="18" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M9 7h6M9 11h6" />
+                <circle cx="12" cy="16.5" r="2" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconMapPin(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 21s7-6.5 7-11.5S15.5 3 12 3 5 6.5 5 9.5 12 21 12 21z" />
+                <circle cx="12" cy="9.5" r="2.5" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconFlag(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M5 3v18M5 3h11l-1.5 4L16 11H5" />
+            </svg>
+        );
+    }
+    function IconRoute(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M6 18c0-3 3-3 6-3s6 0 6-3-3-3-6-3" />
+                <circle cx="6" cy="18" r="2" strokeWidth="1.5" />
+                <circle cx="18" cy="9" r="2" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconCircle(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconSettings(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path strokeWidth="1.5" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 6.6 4.2l.1.1a1.7 1.7 0 0 0 1.9.3H8.7A1.7 1.7 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1.3 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 6l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+            </svg>
+        );
+    }
+
 }

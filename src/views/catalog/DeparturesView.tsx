@@ -406,26 +406,58 @@ export default function DeparturesView() {
                             >
                                 <table className="w-full min-w-[1000px] table-fixed text-sm">
                                     <colgroup>
-                                        <col className="w-56" /> {/* Ruta */}
-                                        <col className="w-36" /> {/* Bus */}
-                                        <col className="w-40" /> {/* Programada */}
-                                        <col className="w-24" /> {/* Estado */}
-                                        <col className="w-[420px]" /> {/* Tripulación + acciones */}
+                                        <col className="w-56"/>
+                                        {/* Ruta */}
+                                        <col className="w-36"/>
+                                        {/* Bus */}
+                                        <col className="w-40"/>
+                                        {/* Programada */}
+                                        <col className="w-24"/>
+                                        {/* Estado */}
+                                        <col className="w-[420px]"/>
+                                        {/* Tripulación + acciones */}
                                     </colgroup>
                                     <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
                                     <tr>
-                                        <th className="px-3 py-2">Ruta</th>
-                                        <th className="px-3 py-2">Bus</th>
-                                        <th className="px-3 py-2">Programada</th>
-                                        <th className="px-3 py-2">Estado</th>
-                                        <th className="px-3 py-2 text-right">Acciones</th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconRoute className="h-4 w-4 text-gray-500"/>
+                                                <span>Ruta</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconBus className="h-4 w-4 text-gray-500"/>
+                                                <span>Bus</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCalendarClock className="h-4 w-4 text-gray-500"/>
+                                                <span>Programada</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCircle className="h-4 w-4 text-gray-500"/>
+                                                <span>Estado</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <IconSettings className="h-4 w-4 text-gray-500"/>
+                                                <span>Acciones</span>
+                                            </div>
+                                        </th>
                                     </tr>
                                     </thead>
+
                                     <tbody>
                                     {items.map((d) => (
                                         <tr key={d.id} className="border-t align-top">
                                             <td className="px-3 py-1.5">
-                                                <div className="truncate font-medium text-gray-900" title={d.route_name}>
+                                                <div className="truncate font-medium text-gray-900"
+                                                     title={d.route_name}>
                                                     {d.route_name}
                                                 </div>
                                                 <div className="text-xs text-gray-500">{d.notes || "—"}</div>
@@ -443,7 +475,8 @@ export default function DeparturesView() {
                                                         className="rounded p-1 hover:bg-gray-100"
                                                         onClick={() => openCrew(d)}
                                                     >
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
                                                             <path
                                                                 d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5 0-9 2.5-9 5v1h18v-1c0-2.5-4-5-9-5Z"
                                                                 strokeWidth="1.5"
@@ -456,14 +489,18 @@ export default function DeparturesView() {
                                                         className="rounded p-1 hover:bg-gray-100"
                                                         onClick={() => openPreview(d)}
                                                     >
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeWidth="1.5" />
-                                                            <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"
+                                                                  strokeWidth="1.5"/>
+                                                            <circle cx="12" cy="12" r="3" strokeWidth="1.5"/>
                                                         </svg>
                                                     </button>
                                                     {/* Editar */}
-                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100" onClick={() => openEdit(d)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100"
+                                                            onClick={() => openEdit(d)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
                                                             <path
                                                                 strokeWidth="1.5"
                                                                 strokeLinecap="round"
@@ -478,7 +515,8 @@ export default function DeparturesView() {
                                                         className="rounded p-1 text-red-600 hover:bg-red-50"
                                                         onClick={() => setConfirmId(d.id)}
                                                     >
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
                                                             <path
                                                                 strokeWidth="1.5"
                                                                 strokeLinecap="round"
@@ -854,4 +892,50 @@ export default function DeparturesView() {
             )}
         </div>
     );
+    function IconRoute(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M6 18c0-3 3-3 6-3s6 0 6-3-3-3-6-3" />
+                <circle cx="6" cy="18" r="2" strokeWidth="1.5" />
+                <circle cx="18" cy="9" r="2" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconBus(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="4" y="4" width="16" height="12" rx="3" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M6 16v2M18 16v2" />
+                <circle cx="8" cy="18" r="1.5" />
+                <circle cx="16" cy="18" r="1.5" />
+                <path strokeWidth="1.5" d="M6 8h12" />
+            </svg>
+        );
+    }
+    function IconCalendarClock(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M16 3v4M8 3v4M3 9h18" />
+                <circle cx="12" cy="15" r="3.5" strokeWidth="1.5" />
+                <path strokeWidth="1.5" strokeLinecap="round" d="M12 14v2l1.5 1" />
+            </svg>
+        );
+    }
+    function IconCircle(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconSettings(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path strokeWidth="1.5" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 6.6 4.2l.1.1a1.7 1.7 0 0 0 1.9.3H8.7A1.7 1.7 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1.3 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 6l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+            </svg>
+        );
+    }
+
 }

@@ -416,35 +416,74 @@ export default function BusesView() {
                             <div className="max-h-[60vh] overflow-y-auto overflow-x-auto overscroll-contain" style={{ scrollbarGutter: "stable both-edges" }}>
                                 <table className="w-full text-sm table-fixed min-w-[980px]">
                                     <colgroup>
-                                        <col className="w-24" />
-                                        <col className="w-[16rem]" />
-                                        <col className="w-28" />
-                                        <col className="w-[14rem]" />
-                                        <col className="w-24" />
-                                        <col className="w-24" />
-                                        <col className="w-40" />
+                                        <col className="w-24"/>
+                                        <col className="w-[16rem]"/>
+                                        <col className="w-28"/>
+                                        <col className="w-[14rem]"/>
+                                        <col className="w-24"/>
+                                        <col className="w-24"/>
+                                        <col className="w-40"/>
                                     </colgroup>
 
                                     <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 shadow-sm">
                                     <tr>
-                                        <th className="px-3 py-2">Código</th>
-                                        <th className="px-3 py-2">Modelo / Año</th>
-                                        <th className="px-3 py-2">Placa</th>
-                                        <th className="px-3 py-2">Chasis</th>
-                                        <th className="px-3 py-2">Capacidad</th>
-                                        <th className="px-3 py-2">Estado</th>
-                                        <th className="px-3 py-2 text-right">Acciones</th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconHash className="h-4 w-4 text-gray-500"/>
+                                                <span>Código</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCar className="h-4 w-4 text-gray-500"/>
+                                                <span>Modelo / Año</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconLicensePlate className="h-4 w-4 text-gray-500"/>
+                                                <span>Placa</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconChassis className="h-4 w-4 text-gray-500"/>
+                                                <span>Chasis</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconUsersRound className="h-4 w-4 text-gray-500"/>
+                                                <span>Capacidad</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-left">
+                                            <div className="flex items-center gap-2">
+                                                <IconCircle className="h-4 w-4 text-gray-500"/>
+                                                <span>Estado</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-3 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <IconSettings className="h-4 w-4 text-gray-500"/>
+                                                <span>Acciones</span>
+                                            </div>
+                                        </th>
                                     </tr>
                                     </thead>
+
 
                                     <tbody>
                                     {items.map((b) => (
                                         <tr key={b.id} className="border-t align-top">
                                             <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-900">{b.code}</td>
                                             <td className="px-3 py-1.5">
-                                                <div className="flex items-center gap-2 truncate" title={`${b.model} (${b.year})`}>
-                                                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                        <rect x="4" y="3" width="16" height="13" rx="2" strokeWidth="1.5" />
+                                                <div className="flex items-center gap-2 truncate"
+                                                     title={`${b.model} (${b.year})`}>
+                                                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                                                         stroke="currentColor">
+                                                        <rect x="4" y="3" width="16" height="13" rx="2"
+                                                              strokeWidth="1.5"/>
                                                     </svg>
                                                     <span className="truncate">{b.model}</span>
                                                     <span className="text-gray-500">· {b.year}</span>
@@ -453,7 +492,7 @@ export default function BusesView() {
                                             <td className="px-3 py-1.5 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1">
                             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <rect x="3" y="7" width="18" height="10" rx="2" strokeWidth="1.5" />
+                              <rect x="3" y="7" width="18" height="10" rx="2" strokeWidth="1.5"/>
                             </svg>
                               {b.plate}
                           </span>
@@ -466,31 +505,44 @@ export default function BusesView() {
                                             <td className="px-3 py-1.5 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1">
                             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M7 12h10M6 16h12" strokeWidth="1.5" />
-                              <rect x="5" y="5" width="14" height="6" rx="2" strokeWidth="1.5" />
+                              <path d="M7 12h10M6 16h12" strokeWidth="1.5"/>
+                              <rect x="5" y="5" width="14" height="6" rx="2" strokeWidth="1.5"/>
                             </svg>
                               {b.capacity}
                           </span>
                                             </td>
                                             <td className="px-3 py-1.5">
-                                                <Badge variant={b.active ? "success" : "muted"}>{b.active ? "Activo" : "Inactivo"}</Badge>
+                                                <Badge
+                                                    variant={b.active ? "success" : "muted"}>{b.active ? "Activo" : "Inactivo"}</Badge>
                                             </td>
                                             <td className="px-3 py-1.5">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    <button title="Ver" className="rounded p-1 hover:bg-gray-100" onClick={() => setViewing(b)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeWidth="1.5" />
-                                                            <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+                                                    <button title="Ver" className="rounded p-1 hover:bg-gray-100"
+                                                            onClick={() => setViewing(b)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"
+                                                                  strokeWidth="1.5"/>
+                                                            <circle cx="12" cy="12" r="3" strokeWidth="1.5"/>
                                                         </svg>
                                                     </button>
-                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100" onClick={() => openEdit(b)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z" />
+                                                    <button title="Editar" className="rounded p-1 hover:bg-gray-100"
+                                                            onClick={() => openEdit(b)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path strokeWidth="1.5" strokeLinecap="round"
+                                                                  strokeLinejoin="round"
+                                                                  d="M16.862 3.487a2.121 2.121 0 1 1 3 3L8.5 17.85 4 19l1.15-4.5L16.862 3.487z"/>
                                                         </svg>
                                                     </button>
-                                                    <button title="Eliminar" className="rounded p-1 text-red-600 hover:bg-red-50" onClick={() => setConfirmId(b.id)}>
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a 2 2 0 0 0 2-2V7" />
+                                                    <button title="Eliminar"
+                                                            className="rounded p-1 text-red-600 hover:bg-red-50"
+                                                            onClick={() => setConfirmId(b.id)}>
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                                             stroke="currentColor">
+                                                            <path strokeWidth="1.5" strokeLinecap="round"
+                                                                  strokeLinejoin="round"
+                                                                  d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-7 0v10a2 2 0 0 0 2 2h2a 2 2 0 0 0 2-2V7"/>
                                                         </svg>
                                                     </button>
                                                 </div>
@@ -508,7 +560,8 @@ export default function BusesView() {
                                 <div key={b.id} className="rounded-2xl border p-3">
                                     <div className="flex items-center justify-between">
                                         <div className="text-sm font-semibold">{b.code}</div>
-                                        <Badge variant={b.active ? "success" : "muted"}>{b.active ? "Activo" : "Inactivo"}</Badge>
+                                        <Badge
+                                            variant={b.active ? "success" : "muted"}>{b.active ? "Activo" : "Inactivo"}</Badge>
                                     </div>
                                     <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
                                         <dt className="col-span-1 text-[10px] uppercase tracking-wide text-gray-500">Modelo/Año</dt>
@@ -863,4 +916,62 @@ export default function BusesView() {
             </div>
         );
     }
+    function IconHash(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" strokeLinecap="round" d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18" />
+            </svg>
+        );
+    }
+    function IconCar(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="10" width="18" height="7" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M5 10l1.5-4.5A2 2 0 0 1 8.4 4h7.2a2 2 0 0 1 1.9 1.5L19 10" />
+                <circle cx="7.5" cy="17.5" r="1.5" />
+                <circle cx="16.5" cy="17.5" r="1.5" />
+            </svg>
+        );
+    }
+    function IconLicensePlate(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="3" y="7" width="18" height="10" rx="2" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M7 12h10" />
+            </svg>
+        );
+    }
+    function IconChassis(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <rect x="4" y="10" width="16" height="4" rx="1" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M4 12H2m20 0h-2M8 14l-2 4m10-4l2 4" />
+            </svg>
+        );
+    }
+    function IconUsersRound(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="8" cy="9" r="3.5" strokeWidth="1.5" />
+                <circle cx="17" cy="7" r="2.5" strokeWidth="1.5" />
+                <path strokeWidth="1.5" d="M2 20a7 7 0 0 1 12 0M14.5 20c.3-1.7 1.8-3 3.5-3s3.2 1.3 3.5 3" />
+            </svg>
+        );
+    }
+    function IconCircle(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+    function IconSettings(props: React.SVGProps<SVGSVGElement>) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+                <path strokeWidth="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path strokeWidth="1.5" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 6.6 4.2l.1.1a1.7 1.7 0 0 0 1.9.3H8.7A1.7 1.7 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1.3 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 6l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+            </svg>
+        );
+    }
+
 }

@@ -1,6 +1,7 @@
 export type View =
     | "resumen"
     | "ventas"
+    | "pagos"
     | "embarque"
     | "tardios"
     | "taquilla"
@@ -12,4 +13,8 @@ export type View =
     | "crews"
     | "salidas"    // ✅ Departures
     | "licenses"
-    | "pasajeros";
+    | "pasajeros"
+    | "recibos"
+
+    | "reportes"
+    | "ia-forecast";

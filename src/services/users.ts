@@ -1,8 +1,14 @@
 // services/users.ts
 import { api } from "./api";
-export type Role = "VEND" | "CAJE";
-export const ROLES: Role[] = ["VEND", "CAJE"];
-// Coincide con tu UserListSerializer (añadimos nombres y fechas)
+
+// --- Roles ---
+// El backend maneja ADMIN/VEND/CAJE. Para lectura necesitamos incluir ADMIN en el tipo.
+// Para UI (selección) usualmente solo se asignan VEND/CAJE.
+export type Role = "ADMIN" | "VEND" | "CAJE";
+export type RoleUI = Exclude<Role, "ADMIN">;
+export const ROLES: RoleUI[] = ["VEND", "CAJE"];
+
+// Coincide con tu UserListSerializer (añadimos nombres, fechas y oficina)
 export type User = {
     id: string | number;
     username: string;
@@ -10,10 +16,12 @@ export type User = {
     first_name?: string;
     last_name?: string;
     role?: Role;
-    active?: boolean;     // normalizado desde is_active
-    is_active?: boolean;  // viene del backend
+    active?: boolean;         // normalizado desde is_active
+    is_active?: boolean;      // viene del backend
     date_joined?: string;
     last_login?: string | null;
+    office?: number | null;       // id de la oficina
+    office_name?: string | null;  // nombre de la oficina
 };
 
 export type ListUsersParams = { q?: string; page?: number; pageSize?: number };
@@ -35,8 +43,20 @@ const normalizeUser = (u: User): User => ({
             : (u.is_active as boolean | undefined),
 });
 
+// Coerce office: "" -> null, "3" -> 3
+const coerceOffice = (value: unknown): number | null | undefined => {
+    if (value === "" || value === undefined) return null;
+    if (value === null) return null;
+    if (typeof value === "string") {
+        const n = Number(value);
+        return Number.isNaN(n) ? null : n;
+    }
+    if (typeof value === "number") return value;
+    return undefined;
+};
+
 type UpsertUserBody = Partial<
-    Pick<User, "username" | "email" | "role" | "first_name" | "last_name">
+    Pick<User, "username" | "email" | "role" | "first_name" | "last_name" | "office">
 > & {
     password?: string;
     active?: boolean;     // front
@@ -44,19 +64,27 @@ type UpsertUserBody = Partial<
 };
 
 const toServer = (body: UpsertUserBody) => {
-    const { active, ...rest } = body;
+    const { active, office, ...rest } = body;
     const payload: Record<string, any> = { ...rest };
-    if (typeof active === "boolean") payload.is_active = active; // DRF espera is_active
+
+    // DRF espera is_active
+    if (typeof active === "boolean") payload.is_active = active;
+
+    // Office limpio
+    const officeFixed = coerceOffice(office);
+    if (officeFixed !== undefined) payload.office = officeFixed;
+
     return payload;
 };
 
 // ---- Listado ----
 export async function listUsers(params: ListUsersParams = {}) {
     const qs = new URLSearchParams();
-    if (params.q) qs.set("search", params.q);                      // DRF SearchFilter
+    if (params.q) qs.set("search", params.q);                          // DRF SearchFilter
     if (params.page) qs.set("page", String(params.page));
     if (params.pageSize) qs.set("page_size", String(params.pageSize)); // DRF PageNumberPagination
     qs.set("_", String(Date.now()));
+
     const data = await api.get<DRFPage<User> | User[]>(`/users/?${qs.toString()}`);
 
     if (Array.isArray(data)) {
@@ -75,15 +103,17 @@ export async function getUser(id: User["id"]) {
 // ---- Crear ----
 export async function createUser(
     body: Pick<User, "username" | "email" | "role"> &
-        Partial<Pick<User, "first_name" | "last_name">> & {
+        Partial<Pick<User, "first_name" | "last_name" | "office">> & {
         password?: string;
         active?: boolean;
     }
 ) {
     const safeLog = { ...body, password: body.password ? "*** redacted ***" : undefined };
     console.log("[users.create] → request", { url: "/users/", method: "POST", body: safeLog });
+
     const u = await api.post<User>("/users/", toServer(body));
     const normalized = normalizeUser(u);
+
     console.log("[users.create] ← response (normalized)", normalized);
     return normalized;
 }
@@ -126,7 +156,6 @@ export async function deleteUser(id: User["id"]) {
     console.log("[users.delete] ← ok");
     return { ok: true };
 }
-
 
 // ---- Admin: set password ----
 export async function setUserPassword(id: User["id"], new_password: string) {
